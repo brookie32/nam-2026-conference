@@ -80,6 +80,22 @@ export function hasEnded(session, clock) {
   return session.day === clock.day && toMinutes(session.endsAt) <= toMinutes(clock.time);
 }
 
+/**
+ * The slot "Jump to now" scrolls to: the `startsAt` of the slot in progress,
+ * else the next to start, else null. Null too when the sessions are not on the
+ * clock's day. Takes the sessions on screen, so filters apply.
+ */
+export function jumpTarget(sessions, clock) {
+  if (!clock?.day || sessions[0]?.day !== clock.day) return null;
+  const now = toMinutes(clock.time);
+  const starts = sessions.map((s) => s.startsAt).sort();
+  const running = sessions
+    .filter((s) => toMinutes(s.startsAt) <= now && now < toMinutes(s.endsAt))
+    .map((s) => s.startsAt)
+    .sort()[0];
+  return running ?? starts.find((t) => toMinutes(t) > now) ?? null;
+}
+
 /** How far through a session we are, 0–1. */
 export function progressOf(session, nowHHMM) {
   const now = toMinutes(nowHHMM);

@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 // Safe to import outside a browser: nothing in this module touches `window`
 // until a hook is actually called.
-import { toMinutes, progressOf, relativeToNow, isOpenAt, hasEnded } from '../../src/lib/clock.js';
+import { toMinutes, progressOf, relativeToNow, isOpenAt, hasEnded, jumpTarget } from '../../src/lib/clock.js';
 
 const session = { startsAt: '14:30', endsAt: '15:30' };
 
@@ -112,5 +112,41 @@ describe('A session has ended once its day is past or its end time has come', ()
   test('without a clock nothing is treated as over', () => {
     assert.equal(hasEnded(talk, null), false);
     assert.equal(hasEnded(talk, undefined), false);
+  });
+});
+
+describe('Jump to now picks the slot to scroll to', () => {
+  const day1 = ['08:00', '09:00', '14:45', '16:00', '19:00'].map((startsAt, i, all) => ({
+    day: '2026-10-12',
+    startsAt,
+    endsAt: ['08:50', '09:45', '15:30', '17:00', '22:00'][i],
+  }));
+  const at = (time, day = '2026-10-12') => ({ day, time });
+
+  test('the slot in progress', () => {
+    assert.equal(jumpTarget(day1, at('15:00')), '14:45');
+    assert.equal(jumpTarget(day1, at('14:45')), '14:45');
+  });
+
+  test('between slots, the next one to start', () => {
+    assert.equal(jumpTarget(day1, at('15:40')), '16:00');
+    assert.equal(jumpTarget(day1, at('08:50')), '09:00');
+    assert.equal(jumpTarget(day1, at('15:30')), '16:00');
+  });
+
+  test('before the first slot, the first', () => {
+    assert.equal(jumpTarget(day1, at('07:00')), '08:00');
+  });
+
+  test('another day, or after the last slot, nothing', () => {
+    assert.equal(jumpTarget(day1, at('15:00', '2026-10-13')), null);
+    assert.equal(jumpTarget(day1, at('22:00')), null);
+    assert.equal(jumpTarget(day1, at('22:15')), null);
+    assert.equal(jumpTarget([], at('15:00')), null);
+  });
+
+  test('overlapping parallel sessions in one slot give that slot once', () => {
+    const parallel = [...day1, { ...day1[2] }];
+    assert.equal(jumpTarget(parallel, at('15:00')), '14:45');
   });
 });

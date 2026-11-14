@@ -10,6 +10,7 @@ import { ScheduleGrid } from '../components/ScheduleGrid.jsx';
 import { SearchInput, Select } from '../components/FilterBar.jsx';
 import { Button, EmptyState, ErrorState, SectionHeader, Skeleton, cx } from '../components/ui.jsx';
 import { Icon } from '../components/Icon.jsx';
+import { jumpTarget } from '../lib/clock.js';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
 
 const ALL = 'all';
@@ -102,6 +103,8 @@ export function SchedulePage() {
     }
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [sessions]);
+
+  const nowSlot = filters.day === clock.day ? jumpTarget(sessions, clock) : null;
 
   const topicTags = tags.filter((t) => t.kind === 'topic');
   const bookedToday = sessions.filter((s) => reservations.has(s.id)).length;
@@ -267,6 +270,16 @@ export function SchedulePage() {
                   Today
                 </span>
               )}
+              {!loading && nowSlot && (
+                <Button
+                  size="sm"
+                  data-testid="jump-to-now"
+                  onClick={() => document.querySelector(`[data-slot="${nowSlot}"]`)?.scrollIntoView({ block: 'start' })}
+                >
+                  <Icon name="clock" className="size-3.5" />
+                  Jump to now
+                </Button>
+              )}
               <span className="text-xs text-muted" data-testid="result-count">
                 {loading ? 'Loading…' : plural(sessions.length, 'session')}
               </span>
@@ -298,7 +311,7 @@ export function SchedulePage() {
           {!loading && sessions.length > 0 && showGrid && <ScheduleGrid sessions={sessions} />}
 
           {!loading && sessions.length > 0 && !showGrid && slots.map(([time, items]) => (
-            <section key={time} className="card overflow-hidden" data-testid={`slot-${time}`}>
+            <section key={time} className="card scroll-mt-20 overflow-hidden" data-slot={time} data-testid={`slot-${time}`}>
               <header className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-2 sm:px-5 sm:py-3">
                 <div className="flex items-baseline gap-3">
                   <h2 className="font-mono text-base font-bold text-ink">{time}</h2>
