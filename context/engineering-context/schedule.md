@@ -144,6 +144,10 @@ unbreakable content and the page scrolls sideways on phones), `minmax(0,1fr)_20r
 - Seat buttons sit inside a `Link`; they `preventDefault` so a click toggles rather than navigates.
 - `starred-count` is the agenda count despite its name — tests rely on the id.
 - `competing`/`alsoInRoom` items lack `speakers`, so the row variant must not need them.
+- **Sort** (`?sort=rating`, absent = by time) is a rail select. Top rated passes `sort=rating` to
+  `/api/sessions` (avg, then count) and renders one flat `rated-list` section instead of `slot-*`
+  sections, day-scoped; it is a `BLOCKERS` entry (forces list, disables Grid) and hides `jump-to-now`.
+  Rated grid cards show `rating-badge` in the header; the footer `Rating` renders only when unrated.
 - **A filter that takes several values** keeps one URL key and one API param,
   comma-separated (`?track=a,b` → `trackSlug=a,b`; `qs()` passes the string
   through), and `sessions.js` splits it into `IN (?, ?)`. One value is then the
