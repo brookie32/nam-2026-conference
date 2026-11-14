@@ -2,6 +2,9 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import * as api from './api.js';
 import { hasEnded, useConferenceClock } from './clock.js';
 import { useToast } from '../components/Toaster.jsx';
+import { useReconnects } from './useOnline.js';
+
+const OFFLINE_TOAST = { message: "You're offline", icon: 'alert' };
 
 /**
  * One app-wide context holding:
@@ -31,10 +34,11 @@ export function ConferenceProvider({ children }) {
   const [conflict, setConflict] = useState(null);
   const clock = useConferenceClock(data?.days ?? []);
   const toast = useToast();
+  const reconnects = useReconnects();
 
   useEffect(() => {
-    api.getBootstrap().then(setData).catch(setError);
-  }, []);
+    api.getBootstrap().then((d) => { setData(d); setError(null); }).catch((e) => setData((prev) => { if (!prev) setError(e); return prev; }));
+  }, [reconnects]);
 
   useEffect(() => {
     let active = true;
@@ -50,12 +54,17 @@ export function ConferenceProvider({ children }) {
       })
       .catch(() => {});
     return () => { active = false; };
-  }, [currentUserId]);
+  }, [currentUserId, reconnects]);
 
   const toggleFollow = useCallback(async (speakerId) => {
     const following = followingIds.has(speakerId);
     const call = following ? api.unfollowSpeaker : api.followSpeaker;
-    await call(currentUserId, speakerId);
+    try {
+      await call(currentUserId, speakerId);
+    } catch (err) {
+      toast(err.offline ? OFFLINE_TOAST : { message: `Could not update follow: ${err.message}`, icon: 'alert' });
+      return;
+    }
     setFollowingIds((prev) => {
       const next = new Set(prev);
       if (following) next.delete(speakerId);
@@ -94,7 +103,7 @@ export function ConferenceProvider({ children }) {
     } catch (err) {
       // 409 means an overlapping seat; the API sends the clash back in the body
       if (err.status !== 409) {
-        toast({ message: `Could not book that seat: ${err.message}`, icon: 'alert' });
+        toast(err.offline ? OFFLINE_TOAST : { message: `Could not book that seat: ${err.message}`, icon: 'alert' });
         return undefined;
       }
       state = err.payload;
@@ -130,7 +139,7 @@ export function ConferenceProvider({ children }) {
     try {
       state = await api.releaseSeat(currentUserId, sessionId);
     } catch (err) {
-      toast({ message: `Could not remove that seat: ${err.message}`, icon: 'alert' });
+      toast(err.offline ? OFFLINE_TOAST : { message: `Could not remove that seat: ${err.message}`, icon: 'alert' });
       return undefined;
     }
     applySeatState(state);
@@ -163,7 +172,7 @@ export function ConferenceProvider({ children }) {
           }
           : { message: `Swapped to “${conflict.wanted.title}”`, icon: 'check' });
       } catch (err) {
-        toast({ message: `Could not swap: ${err.message}`, icon: 'alert' });
+        toast(err.offline ? OFFLINE_TOAST : { message: `Could not swap: ${err.message}`, icon: 'alert' });
       }
     }
     setConflict(null);
@@ -216,6 +225,7 @@ export function useConference() {
 export function useFetch(fn, deps = []) {
   const [state, setState] = useState({ data: null, loading: true, error: null });
   const [nonce, setNonce] = useState(0);
+  const reconnects = useReconnects();
 
   useEffect(() => {
     let active = true;
@@ -225,7 +235,7 @@ export function useFetch(fn, deps = []) {
       .catch((error) => active && setState({ data: null, loading: false, error }));
     return () => { active = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [...deps, nonce]);
+  }, [...deps, nonce, reconnects]);
 
   return { ...state, reload: () => setNonce((n) => n + 1) };
 }

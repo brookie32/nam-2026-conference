@@ -12,6 +12,9 @@ if (!process.env.ORBIT_LANE && !process.env.CI) {
   }
 }
 
+// The production-build server the offline spec runs against (same database).
+const PROD_PORT = Number(process.env.PROD_PORT ?? Number(process.env.PORT ?? 3001) + 100);
+
 /**
  * Verification harness.
  *
@@ -69,12 +72,25 @@ export default defineConfig({
   // on a taken WEB_PORT would attach to the *first* worktree's dev server and
   // run this branch's specs against that branch's code — and pass. So a claimed
   // lane insists on starting its own app, and a collision fails loudly.
-  webServer: {
-    command: 'npm run dev',
-    url: `http://localhost:${process.env.WEB_PORT ?? 5173}`,
-    reuseExistingServer: !process.env.CI && !process.env.ORBIT_LANE,
-    timeout: 90_000,
-    stdout: 'ignore',
-    stderr: 'pipe',
-  },
+  webServer: [
+    {
+      command: 'npm run dev',
+      url: `http://localhost:${process.env.WEB_PORT ?? 5173}`,
+      reuseExistingServer: !process.env.CI && !process.env.ORBIT_LANE,
+      timeout: 90_000,
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
+    // The production build, for the one spec that needs a service worker
+    // (tests/offline-prod.spec.js). It sits PORT + 100 away so a lane's pair never collides.
+    {
+      command: 'npm run build && node server/index.js',
+      env: { PORT: String(PROD_PORT) },
+      url: `http://localhost:${PROD_PORT}/api/health`,
+      reuseExistingServer: !process.env.CI && !process.env.ORBIT_LANE,
+      timeout: 120_000,
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
+  ],
 });

@@ -33,6 +33,7 @@ export function SchedulePage() {
     format: params.get('format') ?? ALL,
     tag: params.get('tag') ?? ALL,
     q: params.get('q') ?? '',
+    sort: params.get('sort') === 'rating' ? 'rating' : ALL,
   };
   // A horizontally scrolling matrix is a poor default on a phone, so the grid
   // is only the default where there is room for it. An explicit ?view= wins.
@@ -58,12 +59,13 @@ export function SchedulePage() {
       format: filters.format,
       tagSlug: filters.tag,
       q: filters.q,
+      sort: filters.sort,
     }),
-    [filters.day, filters.track, filters.venue, filters.level, filters.format, filters.tag, filters.q],
+    [filters.day, filters.track, filters.venue, filters.level, filters.format, filters.tag, filters.q, filters.sort],
   );
 
   const sessions = data ?? [];
-  const activeKeys = ['track', 'venue', 'level', 'format', 'tag', 'q'].filter((k) => filters[k] && filters[k] !== ALL);
+  const activeKeys = ['track', 'venue', 'level', 'format', 'tag', 'q', 'sort'].filter((k) => filters[k] && filters[k] !== ALL);
   // Keep a view the user chose, never the list a filter forced.
   const clearAll = () => {
     const next = new URLSearchParams({ day: filters.day });
@@ -83,6 +85,7 @@ export function SchedulePage() {
     ['tag', 'a topic filter'],
     ['level', 'a level filter'],
     ['format', 'a format filter'],
+    ['sort', 'a sort order'],
   ];
   const blocker = BLOCKERS.find(([key]) => filters[key] && filters[key] !== ALL);
   const clearBlocker = () => {
@@ -104,7 +107,7 @@ export function SchedulePage() {
     return [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
   }, [sessions]);
 
-  const nowSlot = filters.day === clock.day ? jumpTarget(sessions, clock) : null;
+  const nowSlot = filters.day === clock.day && filters.sort === ALL ? jumpTarget(sessions, clock) : null;
 
   const topicTags = tags.filter((t) => t.kind === 'topic');
   const bookedToday = sessions.filter((s) => reservations.has(s.id)).length;
@@ -283,6 +286,8 @@ export function SchedulePage() {
               <span className="text-xs text-muted" data-testid="result-count">
                 {loading ? 'Loading…' : plural(sessions.length, 'session')}
               </span>
+              <Select label="Sort" value={filters.sort} onChange={(v) => set('sort', v)} className="w-28" selectClassName="h-8! pl-2 pr-7 text-xs"
+              options={[{ value: ALL, label: 'By time' }, { value: 'rating', label: 'Top rated' }]} />
             </div>
             {blocker && !loading && (
               <button
@@ -310,7 +315,7 @@ export function SchedulePage() {
 
           {!loading && sessions.length > 0 && showGrid && <ScheduleGrid sessions={sessions} />}
 
-          {!loading && sessions.length > 0 && !showGrid && slots.map(([time, items]) => (
+          {!loading && sessions.length > 0 && !showGrid && filters.sort === ALL && slots.map(([time, items]) => (
             <section key={time} className="card scroll-mt-20 overflow-hidden" data-slot={time} data-testid={`slot-${time}`}>
               <header className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-2 sm:px-5 sm:py-3">
                 <div className="flex items-baseline gap-3">
@@ -324,6 +329,14 @@ export function SchedulePage() {
               </div>
             </section>
           ))}
+
+          {!loading && sessions.length > 0 && !showGrid && filters.sort !== ALL && (
+            <section className="card overflow-hidden" data-testid="rated-list">
+              <div className="grid grid-flow-row grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-2 p-2 sm:gap-3 sm:p-4">
+                {sessions.map((s) => <SessionCard key={s.id} session={s} collapsible={!wide} />)}
+              </div>
+            </section>
+          )}
         </div>
       </div>
     </div>

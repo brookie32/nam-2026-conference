@@ -21,6 +21,7 @@ files:
   - src/components/UserSwitcher.jsx
   - src/components/RouteChange.jsx
   - src/pages/HomePage.jsx
+  - src/components/UpNextCard.jsx
   - src/pages/NotFoundPage.jsx
   - src/pages/PresentationPage.jsx
   - src/pages/ProductPresentationPage.jsx
@@ -90,6 +91,7 @@ Dates are parsed at `T12:00:00Z` with `timeZone: 'UTC'` so they never shift.
 | `Button` | `variant (primary ghost subtle danger; default ghost), size (sm md lg), to` → `Link`, `href` → `a`, else `button`; `as` overrides |
 | `SeatButton` | `status (null confirmed waitlisted), onClick, size (sm md lg — lg is 44px), title, ended` — the one agenda action; stops propagation and sits at `z-10` above card link overlays; `ended` without a `status` disables it as "Session ended" |
 | `Rating` | `value, count, showValue` — "Not yet rated" when `count` is 0 |
+| `RatingBadge` | `value, count` — compact "★ 4.7 · 23" (`rating-badge`) in the grid card header; caller renders it only when `count > 0` |
 | `SectionHeader` | `eyebrow, title, description, action, className` — renders an `h2` |
 | `Spinner`, `Skeleton` | `className` |
 | `EmptyState` | `icon='search', title, description, action` |
@@ -161,10 +163,9 @@ sticky `glass` header, `<main id="main">`, and the footer.
   `/speakers/<currentUser.speakerId>`, which marks itself "This is you"
   (speakers doc). `tests/switcher.spec.js` covers the switcher and that link.
 
-**`HomePage`** (`/`) — static: nothing on it is about the signed-in attendee or
-what is live. It stacks `HeroBar` (`hero`: name, `conference.dates · city`, a
+**`HomePage`** (`/`) — one personal card, nothing live. It stacks `HeroBar` (`hero`: name, `conference.dates · city`, a
 `Day n · time` chip from `clock`, and `Browse today` → `/schedule?day=<clock.day>`
-plus `Speakers` buttons) → `QuickLinks` (`quick-links`, a `nav` of the `LINKS`
+plus `Speakers` buttons) → `UpNextCard` (`up-next`: the attendee's in-progress or next confirmed session from `api.getToday`, with room, venue and `startPhrase`; `up-next-checkin` shown only when the attendance endpoint says `canCheckIn`, then `up-next-checked-in`; `up-next-empty` links to `/schedule?day=<clock.day>`; renders `null` until first response) → `QuickLinks` (`quick-links`, a `nav` of the `LINKS`
 array: Schedule, Speakers, Venues, Food & drink, Expo) → `LatestAnnouncement`
 (`announcements`: the single newest posted one, pinned first, filtered by
 `postedAt <= clock`, so nothing appears before it was written) →

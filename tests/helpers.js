@@ -123,6 +123,8 @@ export const LANES = {
   'schedule.compact': { desktop: { user: jonas, day: 1 },                 mobile: { user: abraham, day: 1 } },
   // read-only: it books nothing, and needs a day the seed sells sessions out on
   'schedule.seats':   { desktop: { user: kenji, day: 1, readOnly: true }, mobile: { user: marcus, day: 0, readOnly: true } },
+  // read-only: it takes a seat offline, which must change nothing
+  'offline.seat':     { desktop: { user: kenji, day: 1, readOnly: true }, mobile: { user: marcus, day: 0, readOnly: true } },
   'session.add':      { desktop: { user: sofia, day: 0 },                 mobile: { user: andy, day: 0 } },
   // marcus/day 3 desktop and jonas/day 0 mobile are each used by no other lane,
   // so concurrent tests cannot collide on these attendee+day pairs.
@@ -130,9 +132,15 @@ export const LANES = {
   // Check-ins and ratings only — no seat is booked, so agenda: false lets these
   // share a day with booking lanes (see lanes.test.js). The slot is the one
   // unattendedFor() picks its session from.
+  // Waitlists a sold-out session and books a clashing one in its slot, then removes both. andy day 1
+  // is held by no other lane; the two panes pin the slots day 1 sells out in (marcus and sofia have none).
+  'agenda.page':      { desktop: { user: andy, day: 1, slot: '10:15' },   mobile: { user: kenji, day: 1, slot: '14:45' } },
   'attendance.checkin-toast': { desktop: { user: kenji, day: 2, slot: '09:00', agenda: false },  mobile: { user: andy, day: 2, slot: '09:00', agenda: false } },
   // Rates for real, so it must land on day index 0 — `today` — per
   // smoke.spec.js's "no session in the future carries a rating".
+  // Checks in for real, to a confirmed seat the seed leaves unattended: day 3 is after
+  // the seeded attendance. Shares its attendee and day only with seat lanes (agenda: true).
+  'home.up-next':     { desktop: { user: sofia, day: 3, agenda: false },  mobile: { user: jonas, day: 3, agenda: false } },
   'attendance.rating-toast':  { desktop: { user: marcus, day: 0, slot: '09:00', agenda: false }, mobile: { user: abraham, day: 0, slot: '09:00', agenda: false } },
 };
 

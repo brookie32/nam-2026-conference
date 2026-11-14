@@ -36,7 +36,7 @@ CLAUDE.md § The conference clock.
 - Pure helpers, safe to import in Node: `toMinutes('HH:MM')`,
   `progressOf(session, now)` (0–1, clamped, on camelCase `startsAt`/`endsAt`),
   `relativeToNow(hhmm, now)` ('starting now' / 'in 12 min' / '8 min ago' /
-  '2h 5m'), `isOpenAt(opens, closes, now)` (wraps past midnight),
+  '2h 5m'), `startPhrase(hhmm, now)` (same, but 'started 8 min ago' for a past start), `isOpenAt(opens, closes, now)` (wraps past midnight),
   `hasEnded(session, clock)` (earlier day, or same day at/after `endsAt`; false
   without a clock — the client mirror of the API's `rejected: 'ended'` rule).
   `jumpTarget(sessions, clock)` → `startsAt` of the slot in progress, else the next

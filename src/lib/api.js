@@ -6,11 +6,26 @@
  */
 const BASE = '/api';
 
+function offlineError() {
+  const error = new Error("You're offline");
+  error.offline = true;
+  return error;
+}
+
 async function api(path, options = {}) {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
+  const write = (options.method ?? 'GET') !== 'GET';
+  // Writes are never cached or queued: offline they fail, and change nothing.
+  if (write && typeof navigator !== 'undefined' && navigator.onLine === false) throw offlineError();
+  let res;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...options,
+    });
+  } catch (err) {
+    if (write && err instanceof TypeError) throw offlineError();
+    throw err;
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const error = new Error(body.error ?? `Request failed: ${res.status}`);
@@ -42,6 +57,7 @@ export const getSponsors = () => api('/sponsors');
 export const getAnnouncements = () => api('/announcements');
 export const getUser = (id) => api(`/users/${id}`);
 export const getSchedule = (userId) => api(`/users/${userId}/schedule`);
+export const getSeatState = (userId, sessionId) => api(`/users/${userId}/reservations/${sessionId}`);
 export const getToday = (userId, { day, time }) => api(`/users/${userId}/today${qs({ day, time })}`);
 
 /**

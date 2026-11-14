@@ -168,6 +168,17 @@ export function Rating({ value, count, className, showValue = true }) {
   );
 }
 
+/** Compact "★ 4.7 · 23" for a card header; the caller renders it only when rated. */
+export function RatingBadge({ value, count }) {
+  return (
+    <span data-testid="rating-badge" aria-label={`Rated ${value.toFixed(1)} from ${count} ${count === 1 ? 'rating' : 'ratings'}`}
+      className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[11px] font-semibold normal-case tracking-normal text-amber-200">
+      <Icon name="star" filled className="size-3 text-amber-400" />
+      {value.toFixed(1)} · {count}
+    </span>
+  );
+}
+
 /* ------------------------------ SectionHeader ---------------------------- */
 export function SectionHeader({ eyebrow, title, description, action, className }) {
   return (
