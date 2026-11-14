@@ -11,7 +11,14 @@ files:
   - src/App.jsx
   - src/lib/api.js
   - src/lib/store.jsx
+  - src/lib/useOnline.js
+  - src/components/OfflineBanner.jsx
+  - public/sw.js
+  - public/manifest.webmanifest
+  - public/brand/orbit-icon.svg
 tests:
+  - tests/unit/offline-api.test.js
+  - tests/offline-prod.spec.js
   - tests/api/contracts.test.js
   - tests/api/endpoints.test.js
   - tests/unit/query.test.js
@@ -104,6 +111,18 @@ every card updates without refetching; read `seatsFor(id)` before the page's pay
 **`useFetch(fn, deps)`** returns `{ data, loading, error, reload }`. It re-runs when `deps`
 change or `reload()` bumps a nonce, keeps the previous `data` while loading, and ignores
 responses from a superseded run.
+
+## Offline and install
+
+A production build links `/manifest.webmanifest` (name, `theme_color`, `orbit-icon.svg`) and
+`main.jsx` registers `public/sw.js` only under `import.meta.env.PROD` — dev registers nothing.
+The worker is network-first with a cache fallback for same-origin GETs (navigations fall back to
+a cached shell) and the read-only `/api/` paths (bootstrap, sessions, speakers, venues, vendors,
+sponsors); `/api/users`, `/api/live`, `.ics` and every non-GET are never intercepted.
+`useOnline()` / `useReconnects()` (`src/lib/useOnline.js`) drive `OfflineBanner`
+(`offline-banner`); `useFetch` and the bootstrap/user effects refetch when `reconnects` bumps.
+`api()` throws `Error("You're offline")` with `offline = true` for a write made offline (no request
+sent) or whose fetch throws a `TypeError`; store and `AttendancePanel` toast "You're offline" on it.
 
 ## Invariants
 
