@@ -5,7 +5,7 @@ import { useDocumentTitle } from '../lib/useDocumentTitle.js';
 import { SessionCard } from '../components/SessionCard.jsx';
 import { EmptyState, ErrorState, SectionHeader, Skeleton, cx } from '../components/ui.jsx';
 
-const NONE = { tracks: [], tags: [] };
+const NONE = { tracks: [], tags: [], role: null };
 
 function InterestChip({ label, on, onClick }) {
   return (

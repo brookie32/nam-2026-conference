@@ -197,7 +197,7 @@ CREATE TABLE IF NOT EXISTS speaker_follows (
 
 CREATE TABLE IF NOT EXISTS user_interests (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  kind    TEXT NOT NULL CHECK (kind IN ('track','tag')),
+  kind    TEXT NOT NULL CHECK (kind IN ('track','tag','role')),
   slug    TEXT NOT NULL,
   PRIMARY KEY (user_id, kind, slug)
 );

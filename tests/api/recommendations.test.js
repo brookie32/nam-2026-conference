@@ -34,7 +34,7 @@ describe('interests', () => {
     assert.equal(put.status, 200);
     assert.deepEqual(put.body, { tracks: [t1, t2].sort(), tags: [g1], role: null });
     assert.deepEqual(await api.json('/users/1/interests'), put.body);
-    assert.deepEqual(await api.json('/users/2/interests'), { tracks: [], tags: [] }, 'another attendee is unaffected');
+    assert.deepEqual(await api.json('/users/2/interests'), { tracks: [], tags: [], role: null }, 'another attendee is unaffected');
 
     const replaced = await pick(1, { tracks: [t2], tags: [g2], role: null });
     assert.deepEqual(replaced.body, { tracks: [t2], tags: [g2], role: null });
@@ -60,10 +60,11 @@ describe('interests', () => {
     assert.deepEqual(put.body, { tracks: [t1], tags: [g1, g2].sort(), role: 'short-stay' });
     assert.deepEqual(await api.json('/users/2/interests'), put.body);
 
-    // A role alone is not a pick: nothing to recommend from.
+    // A role alone is not a pick: it changes nothing about what is recommended.
+    const before = await recs(4, days[0], '08:00');
     await pick(4, { tracks: [], tags: [], role: 'vip' });
     assert.deepEqual(await api.json('/users/4/interests'), { tracks: [], tags: [], role: 'vip' });
-    assert.deepEqual(await recs(4, days[0], '08:00'), { items: [], needsInterests: true });
+    assert.deepEqual(await recs(4, days[0], '08:00'), before);
 
     for (const role of ['nope', 7, '']) {
       const res = await pick(2, { tracks: [], tags: [], role });

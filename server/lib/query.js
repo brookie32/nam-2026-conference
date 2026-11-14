@@ -201,6 +201,7 @@ export const toUser = (row, extra = {}) => ({
 export const toInterests = (rows) => ({
   tracks: rows.filter((r) => r.kind === 'track').map((r) => r.slug).sort(),
   tags: rows.filter((r) => r.kind === 'tag').map((r) => r.slug).sort(),
+  role: rows.find((r) => r.kind === 'role')?.slug ?? null,
 });
 
 export const toAnnouncement = (row) => ({
