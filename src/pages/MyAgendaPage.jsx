@@ -37,23 +37,45 @@ function TravelNote({ note }) {
   const { fastest, gapMinutes, warn, from, to } = note;
   return (
     <li data-testid="agenda-travel" data-state={warn ? 'warn' : 'ok'} data-from={from.id} data-to={to.id}
-      className={cx('flex min-w-0 items-start gap-2 px-3 text-xs', warn ? 'font-semibold text-amber-300' : 'text-muted')}>
-      <Icon name={warn ? 'alert' : 'car'} className="mt-0.5 size-3.5 shrink-0" />
-      <span className="min-w-0">
-        {warn
-          ? `You'll need ~${fastest.total} min by ${fastest.mode}; you have ${gapMinutes}`
-          : `~${fastest.total} min by ${fastest.mode} to ${to.venue.name}; you have ${gapMinutes}`}
+      className={cx('flex min-w-0 items-center gap-3 rounded-xl border px-3 py-2.5',
+        warn ? 'border-amber-400/50 bg-amber-500/10' : 'border-sky-400/30 bg-sky-500/10')}>
+      <span className={cx('grid size-9 shrink-0 place-items-center rounded-full',
+        warn ? 'bg-amber-500/20 text-amber-300' : 'bg-sky-500/20 text-sky-300')}>
+        <Icon name={warn ? 'alert' : 'car'} className="size-4" />
+      </span>
+      <span className="min-w-0 text-sm">
+        <span className={cx('block font-semibold', warn ? 'text-amber-200' : 'text-sky-200')}>
+          {warn ? 'Tight connection' : `Travel to ${to.venue.name}`}
+        </span>
+        <span className={cx('block', warn ? 'text-amber-100/90' : 'text-muted')}>
+          {warn
+            ? `You'll need ~${fastest.total} min by ${fastest.mode}; you have ${gapMinutes} min`
+            : `~${fastest.total} min by ${fastest.mode}; you have ${gapMinutes} min`}
+        </span>
       </span>
     </li>
   );
 }
 
+const minutesBetween = (a, b) => (Number(b.slice(0, 2)) * 60 + Number(b.slice(3, 5))) - (Number(a.slice(0, 2)) * 60 + Number(a.slice(3, 5)));
+
 /** A free stretch between two seats, with up to three talks that fit inside it. */
 function GapRow({ gap }) {
   return (
     <li data-testid="agenda-gap" data-start={gap.startsAt} data-end={gap.endsAt}
-      className="min-w-0 space-y-2 rounded-xl border border-dashed border-violet-400/40 p-3">
-      <p className="text-sm font-semibold text-violet-300">You're free {gap.startsAt}-{gap.endsAt}</p>
+      className="min-w-0 space-y-3 rounded-xl border border-violet-400/40 border-l-4 border-l-violet-400 bg-violet-500/10 p-3">
+      <div className="flex items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-violet-500/20 text-violet-300">
+          <Icon name="clock" className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-violet-200">You're free {gap.startsAt}-{gap.endsAt}</p>
+          <p className="text-xs text-muted">Free time · {minutesBetween(gap.startsAt, gap.endsAt)} min</p>
+        </div>
+      </div>
+      {gap.suggestions.length > 0 && (
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-violet-300/80">Talks that fit</p>
+      )}
       {gap.suggestions.length > 0 && (
         <ul className="space-y-2">
           {gap.suggestions.map(({ session, reasons }) => (
