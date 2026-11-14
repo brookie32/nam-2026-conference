@@ -276,6 +276,7 @@ export function SchedulePage() {
               {!loading && nowSlot && (
                 <Button
                   size="sm"
+                  className="max-lg:h-11"
                   data-testid="jump-to-now"
                   onClick={() => document.querySelector(`[data-slot="${nowSlot}"]`)?.scrollIntoView({ block: 'start' })}
                 >

@@ -78,7 +78,7 @@ its link opens `/my-agenda`, which is a placeholder (agenda doc).
 **Jump to now** (`jump-to-now`, in the day heading row after the *Today* chip) shows only when
 `filters.day === clock.day` and `jumpTarget(sessions, clock)` (clock doc) is non-null, so
 filters apply and it vanishes after the last slot. Click scrolls `[data-slot=<HH:MM>]` to the top
-once, never on load. List `slot-<HH:MM>` sections and grid `grid-slot-<HH:MM>` wrappers carry
+once, never on load. It is the `sm` button (32px) from `lg` up and `max-lg:h-11` (44px tap target) below. List `slot-<HH:MM>` sections and grid `grid-slot-<HH:MM>` wrappers carry
 `data-slot` and `scroll-mt-20` (clears the sticky header).
 
 **`ScheduleGrid`** (`schedule-grid`, `role="table"`) — splits `sessions` into
