@@ -10,6 +10,7 @@ files:
   - server/routes/ask.js
   - server/lib/ask.js
   - src/pages/AskPage.jsx
+  - src/lib/splitReply.js
   - src/main.jsx
   - src/App.jsx
   - src/lib/api.js
@@ -21,6 +22,7 @@ files:
   - public/brand/orbit-icon.svg
 tests:
   - tests/unit/offline-api.test.js
+  - tests/unit/split-reply.test.js
   - tests/offline-prod.spec.js
   - tests/api/contracts.test.js
   - tests/api/endpoints.test.js
@@ -110,7 +112,7 @@ request. Locally the key lives in a gitignored `.env` at the repo root, which `s
 loads with `process.loadEnvFile` when it exists (CI and a fresh fork have none). Not
 `node --env-file-if-exists`: with `--watch` it stalled the API on CI's Linux runners. `askTools` (`searchSessions`, `findSpeakers`, `venuesAndTravel`) are the model's only data;
 they return session ids so the reply links `[title](/sessions/<id>)`, and the page renders only those
-links (`renderReply`). `askOrbit()` in `api.js` returns the body reader; the page learns "not
+links (`renderReply`). `splitReply()` (`src/lib/splitReply.js`) splits a reply into text and Markdown-table blocks (a table needs a separator row, so a half-streamed one stays text until it arrives); `ReplyBody` renders tables in an `overflow-x-auto` wrapper so a wide one scrolls inside the bubble. `askOrbit()` in `api.js` returns the body reader; the page learns "not
 configured" from the 503 on send (`ask-not-configured`). Tests stub the model and `/api/ask`.
 
 **`useConference()`** (`store.jsx:ConferenceProvider`) spreads the whole bootstrap payload
