@@ -1,7 +1,7 @@
 import { Icon } from './Icon.jsx';
 import { cx } from './ui.jsx';
 
-export function SearchInput({ value, onChange, placeholder = 'Search…', className, ...rest }) {
+export function SearchInput({ value, onChange, placeholder = 'Search…', className, inputClassName, ...rest }) {
   return (
     <div className={cx('relative', className)}>
       <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-faint" />
@@ -10,21 +10,21 @@ export function SearchInput({ value, onChange, placeholder = 'Search…', classN
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-10 w-full rounded-lg border border-hairline bg-ground/70 pl-9 pr-3 text-sm placeholder:text-faint focus:border-violet-400/60 focus:bg-ground focus:outline-none"
+        className={cx('h-10 w-full rounded-lg border border-hairline bg-ground/70 pl-9 pr-3 text-sm placeholder:text-faint focus:border-violet-400/60 focus:bg-ground focus:outline-none', inputClassName)}
         {...rest}
       />
     </div>
   );
 }
 
-export function Select({ label, value, onChange, options, className }) {
+export function Select({ label, value, onChange, options, className, selectClassName }) {
   return (
     <label className={cx('relative block', className)}>
       <span className="sr-only">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-10 w-full appearance-none rounded-lg border border-hairline bg-ground/70 pl-3 pr-8 text-sm text-ink focus:border-violet-400/60 focus:outline-none"
+        className={cx('h-10 w-full appearance-none rounded-lg border border-hairline bg-ground/70 pl-3 pr-8 text-sm text-ink focus:border-violet-400/60 focus:outline-none', selectClassName)}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value} className="bg-surface">{o.label}</option>
@@ -70,7 +70,7 @@ export function TabStrip({ tabs, value, onChange, className }) {
  * for small, stable option sets (days, tracks) showing them all is faster and
  * tells you what exists.
  */
-export function ChipGroup({ label, value, onChange, options, className }) {
+export function ChipGroup({ label, value, onChange, options, className, chipClassName }) {
   return (
     <div className={cx('flex flex-wrap items-center gap-1.5', className)} role="group" aria-label={label}>
       {label && (
@@ -89,6 +89,7 @@ export function ChipGroup({ label, value, onChange, options, className }) {
             data-testid={o.testId}
             className={cx(
               'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-all',
+              chipClassName,
               active
                 ? o.activeClass ?? 'border-violet-400/50 bg-violet-500/15 text-ink'
                 : 'border-hairline bg-raised text-muted hover:border-white/20 hover:text-ink',

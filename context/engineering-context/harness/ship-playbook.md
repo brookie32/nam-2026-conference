@@ -152,6 +152,14 @@ A plan, not an essay — half a page. If writing it changes your mind about the
 approach, that is the step working. It lands with the change and stays, so keep
 it true: a spec that disagrees with its own pull request is worse than none.
 
+A layout plan that moves an element into a wrapper is checked against the
+DOM at **each breakpoint**, not just the one the ticket is about: a wrapper is a
+sibling of the grid the element used to sit in, so "unchanged at `lg`" needs a
+named mechanism (the element stays a cell of its old grid and only its own
+visibility toggles, or the wrapper is `lg:contents`), and the spec names who
+owns the spacing the old parent supplied (`space-y-*`, `gap-*`). Read the
+parent's classes in the current file before writing the plan.
+
 A claim in *Where* about a file's current state — a step's `env:` already
 carrying a value, a function already existing — is read off the file, never
 inferred from a sibling step or from memory: GitHub Actions `env:` is per

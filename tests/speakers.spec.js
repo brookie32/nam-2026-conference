@@ -38,7 +38,9 @@ test.describe('Speakers', () => {
     await expect(following).toBeVisible();
     await expect(following).toContainText(name);
 
-    // and the Following chip filters down to just them
+    // and the Following chip filters down to just them (behind Filters on a phone)
+    const filters = page.getByRole('button', { name: /^Filters/ });
+    if (await filters.isVisible()) await filters.click();
     await page.getByTestId('filter-following').click();
     await expect(page.getByTestId('followed-speakers')).toContainText(name);
     await expect(page.getByTestId('headline-speakers')).toHaveCount(0);
@@ -178,5 +180,74 @@ test.describe('Headliner spotlight', () => {
     // the following view keeps its own message even with a search that finds nobody
     await visit(page, '/speakers?show=following&q=zzqx');
     await expect(page.getByRole('heading', { name: 'You are not following anyone yet', exact: true })).toBeVisible();
+  });
+});
+
+test.describe('Speakers filters on a phone', () => {
+  test('the first screen shows search, Filters and a speaker card', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'phone layout');
+    await page.setViewportSize({ width: 375, height: 659 });
+    await visit(page, '/speakers');
+    await expect(page.getByTestId('speaker-search')).toBeInViewport();
+    await expect(page.getByRole('button', { name: /^Filters/ })).toBeInViewport();
+    await expect(page.locator('main a[href^="/speakers/"]').first()).toBeInViewport();
+  });
+
+  test('Filters opens every control, applies one, counts and is touch-sized', async ({ page, request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'phone layout');
+    const days = await conferenceDays();
+    const { tracks } = await (await request.get(`${API}/bootstrap`)).json();
+    await visit(page, '/speakers');
+
+    const filters = page.getByRole('button', { name: /^Filters/ });
+    const sort = page.getByLabel('Sort');
+    const groups = ['Show', 'Day', 'Track'].map((n) => page.getByRole('group', { name: n }));
+    await expect(filters).toHaveText('Filters');
+    await expect(filters).toHaveAttribute('aria-expanded', 'false');
+    await expect(sort).toBeHidden();
+    for (const g of groups) await expect(g).toBeHidden();
+
+    await filters.click();
+    await expect(filters).toHaveAttribute('aria-expanded', 'true');
+    await expect(sort).toBeVisible();
+    for (const g of groups) await expect(g).toBeVisible();
+    await shotForPR(page, 'Speakers filters open on a phone');
+
+    // every control is at least 44px tall
+    const heights = async (loc) => (await loc.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height)));
+    for (const h of [
+      ...(await heights(page.getByTestId('speaker-search'))),
+      ...(await heights(filters)),
+      ...(await heights(sort)),
+      ...(await heights(page.locator('[role="group"] button'))),
+    ]) expect(h).toBeGreaterThanOrEqual(44);
+
+    // apply a day: URL, list and count follow
+    await page.getByTestId(`speaker-day-${days[1]}`).click();
+    await expect(page).toHaveURL(new RegExp(`day=${days[1]}`));
+    const byDay = await (await request.get(`${API}/speakers?day=${days[1]}`)).json();
+    await expect(page.getByTestId('speaker-count')).toHaveText(String(byDay.length));
+    await expect(filters).toHaveText('Filters (1)');
+
+    await page.getByRole('group', { name: 'Track' }).getByRole('button').nth(1).click();
+    await expect(filters).toHaveText('Filters (2)');
+    expect(tracks.length).toBeGreaterThan(0);
+
+    await page.getByRole('button', { name: 'Any day' }).click();
+    await expect(filters).toHaveText('Filters (1)');
+    await expect(page).not.toHaveURL(/day=/);
+  });
+
+  test('desktop keeps Sort on the search row and the chips open', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop layout');
+    await visit(page, '/speakers');
+    await expect(page.getByRole('button', { name: /^Filters/ })).toBeHidden();
+    for (const n of ['Show', 'Day', 'Track']) await expect(page.getByRole('group', { name: n })).toBeVisible();
+    const search = await page.getByTestId('speaker-search').boundingBox();
+    const sort = await page.getByLabel('Sort').boundingBox();
+    expect(sort.y).toBeCloseTo(search.y, 0);
+    expect(sort.x).toBeGreaterThan(search.x + search.width - 1);
+    expect(search.height).toBe(40);
+    expect((await page.getByTestId('filter-all').boundingBox()).height).toBeLessThan(44);
   });
 });
