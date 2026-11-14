@@ -28,17 +28,17 @@ describe('interests', () => {
   test('saved per attendee, replaced as a set, returned as slugs', async () => {
     const [t1, t2] = trackSlugs();
     const [g1, g2] = topicSlugs();
-    assert.deepEqual(await api.json('/users/1/interests'), { tracks: [], tags: [] });
+    assert.deepEqual(await api.json('/users/1/interests'), { tracks: [], tags: [], role: null });
 
     const put = await pick(1, { tracks: [t1, t2], tags: [g1] });
     assert.equal(put.status, 200);
-    assert.deepEqual(put.body, { tracks: [t1, t2].sort(), tags: [g1] });
+    assert.deepEqual(put.body, { tracks: [t1, t2].sort(), tags: [g1], role: null });
     assert.deepEqual(await api.json('/users/1/interests'), put.body);
     assert.deepEqual(await api.json('/users/2/interests'), { tracks: [], tags: [] }, 'another attendee is unaffected');
 
-    const replaced = await pick(1, { tracks: [t2], tags: [g2] });
-    assert.deepEqual(replaced.body, { tracks: [t2], tags: [g2] });
-    assert.deepEqual((await pick(1, { tracks: [], tags: [] })).body, { tracks: [], tags: [] });
+    const replaced = await pick(1, { tracks: [t2], tags: [g2], role: null });
+    assert.deepEqual(replaced.body, { tracks: [t2], tags: [g2], role: null });
+    assert.deepEqual((await pick(1, { tracks: [], tags: [], role: null })).body, { tracks: [], tags: [], role: null });
   });
 
   test('an unknown slug is a 400 and changes nothing', async () => {
@@ -49,12 +49,39 @@ describe('interests', () => {
       assert.equal(res.status, 400, JSON.stringify(body));
       assert.ok(res.body.error);
     }
-    assert.deepEqual(await api.json('/users/3/interests'), { tracks: [t1], tags: [] });
+    assert.deepEqual(await api.json('/users/3/interests'), { tracks: [t1], tags: [], role: null });
+  });
+
+  test('a role is stored as its own kind, never counts as a pick, and an unknown one is a 400', async () => {
+    const [t1] = trackSlugs();
+    const [g1, g2] = topicSlugs();
+    const put = await pick(2, { tracks: [t1], tags: [g1, g2], role: 'short-stay' });
+    assert.equal(put.status, 200);
+    assert.deepEqual(put.body, { tracks: [t1], tags: [g1, g2].sort(), role: 'short-stay' });
+    assert.deepEqual(await api.json('/users/2/interests'), put.body);
+
+    // A role alone is not a pick: nothing to recommend from.
+    await pick(4, { tracks: [], tags: [], role: 'vip' });
+    assert.deepEqual(await api.json('/users/4/interests'), { tracks: [], tags: [], role: 'vip' });
+    assert.deepEqual(await recs(4, days[0], '08:00'), { items: [], needsInterests: true });
+
+    for (const role of ['nope', 7, '']) {
+      const res = await pick(2, { tracks: [], tags: [], role });
+      assert.equal(res.status, 400, JSON.stringify(role));
+    }
+    assert.equal((await api.json('/users/2/interests')).role, 'short-stay', 'a rejected PUT changes nothing');
+    const cleared = await pick(2, { tracks: [t1], tags: [] });
+    assert.equal(cleared.body.role, null, 'omitting the role clears it');
+    for (const role of ['vip', 'short-stay', 'speaking']) {
+      assert.equal((await pick(2, { tracks: [], tags: [], role })).status, 200, role);
+    }
+    await pick(2, { tracks: [], tags: [] });
+    await pick(4, { tracks: [], tags: [] });
   });
 
   test('an unknown attendee is a 404', async () => {
     assert.equal((await api.get('/users/999999/interests')).status, 404);
-    assert.equal((await pick(999999, { tracks: [], tags: [] })).status, 404);
+    assert.equal((await pick(999999, { tracks: [], tags: [], role: null })).status, 404);
     assert.equal((await api.get(`/users/999999/recommendations?day=${days[0]}&time=09:00`)).status, 404);
   });
 });
@@ -66,7 +93,7 @@ describe('recommendations', () => {
 
   test('with no interests and no agenda, the page is asked to collect interests', async () => {
     await clearAgenda(api, 4);
-    await pick(4, { tracks: [], tags: [] });
+    await pick(4, { tracks: [], tags: [], role: null });
     assert.deepEqual(await recs(4, days[0], '08:00'), { items: [], needsInterests: true });
   });
 

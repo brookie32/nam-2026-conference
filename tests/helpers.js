@@ -20,6 +20,8 @@ export const ATTENDEES = {
   sofia: 4,      // VIP, biggest plan
   marcus: 5,     // Standard, smallest plan
   abraham: 6,      // Speaker — presenting 2 sessions
+  // Welcome-only attendees: no plan, no follows, no interests until a test picks some.
+  welcomeA: 7, welcomeB: 8, welcomeC: 9, welcomeD: 10,
 };
 
 /**
@@ -104,7 +106,7 @@ export async function clearAgendaFor(request, userId, day) {
  * Lanes marked `clean` are days the seed leaves empty for that attendee, so the
  * test may clear the whole day; everywhere else, release only what you booked.
  */
-const { jonas, andy, kenji, sofia, marcus, abraham } = ATTENDEES;
+const { jonas, andy, kenji, sofia, marcus, abraham, welcomeA, welcomeB, welcomeC, welcomeD } = ATTENDEES;
 export const LANES = {
   'seats.count':      { desktop: { user: jonas, day: 2, slot: '09:00' },  mobile: { user: andy, day: 2, slot: '11:30' } },
   'seats.reload':     { desktop: { user: sofia, day: 2, slot: '13:30' },  mobile: { user: abraham, day: 2, slot: '10:15' } },
@@ -150,6 +152,9 @@ export const LANES = {
   // Reads recommendations only; interests are set per pane on attendees no other lane gives interests
   // to (`other` is the second attendee, for the switch). Books nothing.
   'home.recs':        { desktop: { user: andy, other: sofia, day: 0, readOnly: true }, mobile: { user: jonas, other: abraham, day: 0, readOnly: true } },
+  // The first-visit welcome on Home. Attendees 7-10 are seeded for it alone; the walk gives them
+  // interests and a skip flag, so no other lane may use them.
+  'home.welcome':     { desktop: { user: welcomeA, other: welcomeB, day: 0, readOnly: true }, mobile: { user: welcomeC, other: welcomeD, day: 0, readOnly: true } },
   'attendance.rating-toast':  { desktop: { user: marcus, day: 0, slot: '09:00', agenda: false }, mobile: { user: abraham, day: 0, slot: '09:00', agenda: false } },
 };
 
