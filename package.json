@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "ORBIT '26 \u2014 the conference companion app",
+  "description": "ORBIT '26 — the conference companion app",
   "scripts": {
     "dev": "npm run db:seed && concurrently -n api,web -c magenta,cyan \"npm:dev:api\" \"npm:dev:web\"",
     "start": "npm run db:seed && node server/index.js",
@@ -22,13 +22,15 @@
     "avatars": "node scripts/fetch-avatars.mjs"
   },
   "dependencies": {
+    "ai": "^5.0.290",
     "better-sqlite3": "^11.7.0",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "motion": "^12.43.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.28.0"
+    "react-router-dom": "^6.28.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.0",

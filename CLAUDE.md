@@ -21,6 +21,12 @@ check-in, ratings, follows, `/users/:id/schedule`, `/users/:id/today`, `/live`
 and the `.ics` exports, each with a function in `src/lib/api.js`. A ticket that
 only needs a page on top of one of those is small. (how: `context/engineering-context/agenda.md`)
 
+## Ask ORBIT
+
+`/ask` is a chat over the programme, written by a Claude model through the Vercel AI SDK and AI
+Gateway. It needs `AI_GATEWAY_API_KEY` (optionally `ASK_ORBIT_MODEL`); without it the page says it
+isn't configured and `POST /api/ask` returns 503. Tests never call a provider. (how: `architecture.md`)
+
 ## Run it
 
 ```bash

@@ -8,6 +8,7 @@ import { SchedulePage } from './pages/SchedulePage.jsx';
 import { SessionPage } from './pages/SessionPage.jsx';
 import { SpeakersPage } from './pages/SpeakersPage.jsx';
 import { SpeakerPage } from './pages/SpeakerPage.jsx';
+import { AskPage } from './pages/AskPage.jsx';
 import { MyAgendaPage } from './pages/MyAgendaPage.jsx';
 import { VenuesPage } from './pages/VenuesPage.jsx';
 import { FoodPage } from './pages/FoodPage.jsx';
@@ -49,6 +50,7 @@ export function App() {
         <Route path="venues" element={<VenuesPage />} />
         <Route path="food" element={<FoodPage />} />
         <Route path="expo" element={<ExpoPage />} />
+        <Route path="ask" element={<AskPage />} />
         <Route path="code-of-conduct" element={<CodeOfConductPage />} />
         <Route path="accessibility" element={<AccessibilityPage />} />
         <Route path="*" element={<NotFoundPage />} />

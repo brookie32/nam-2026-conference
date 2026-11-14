@@ -7,6 +7,9 @@ files:
   - server/db.js
   - server/lib/query.js
   - server/routes/meta.js
+  - server/routes/ask.js
+  - server/lib/ask.js
+  - src/pages/AskPage.jsx
   - src/main.jsx
   - src/App.jsx
   - src/lib/api.js
@@ -21,6 +24,8 @@ tests:
   - tests/offline-prod.spec.js
   - tests/api/contracts.test.js
   - tests/api/endpoints.test.js
+  - tests/api/ask.test.js
+  - tests/ask.spec.js
   - tests/unit/query.test.js
 related: [seats, agenda, clock, schedule, speakers, venues, seed, testing]
 ---
@@ -93,8 +98,20 @@ batched `IN (…)` queries — use it for lists; bare `toSession` has no speaker
 **Client shell.** `src/main.jsx`: `StrictMode → BrowserRouter → Toaster → ConferenceProvider
 → App`. `src/App.jsx` shows `ErrorState` if bootstrap failed, `Spinner` until `ready`, then
 the routes. `/opening-presentation`, `/product-presentation` and `/engineering-presentation` sit outside it, full screen; the rest are inside `<Layout>`: `/` Home, `/schedule`, `/sessions/:id`, `/speakers`,
-`/speakers/:id`, `/my-agenda`, `/my-plan` (→ `/my-agenda`), `/venues`, `/food`, `/expo`,
+`/speakers/:id`, `/my-agenda`, `/my-plan` (→ `/my-agenda`), `/venues`, `/food`, `/expo`, `/ask`,
 `/code-of-conduct`, `/accessibility`, `*` NotFound.
+
+**Ask ORBIT** (`/ask`, `AskPage.jsx`). `POST /api/ask { messages: [{ role, content }] }` streams a plain
+text reply (`streamText().pipeTextStreamToResponse`); 503 `{ error: 'Ask ORBIT is not configured' }`
+when `askModel()` is null, 400 on an empty or malformed `messages`. `server/lib/ask.js`: `askModel()`
+is the injected model (`setAskModel`, the test seam), else the AI Gateway model
+(`ASK_ORBIT_MODEL`, default `anthropic/claude-sonnet-5.5`) when `AI_GATEWAY_API_KEY` is set, read per
+request. Locally the key lives in a gitignored `.env` at the repo root, which `server/index.js`
+loads with `process.loadEnvFile` when it exists (CI and a fresh fork have none). Not
+`node --env-file-if-exists`: with `--watch` it stalled the API on CI's Linux runners. `askTools` (`searchSessions`, `findSpeakers`, `venuesAndTravel`) are the model's only data;
+they return session ids so the reply links `[title](/sessions/<id>)`, and the page renders only those
+links (`renderReply`). `askOrbit()` in `api.js` returns the body reader; the page learns "not
+configured" from the 503 on send (`ask-not-configured`). Tests stub the model and `/api/ask`.
 
 **`useConference()`** (`store.jsx:ConferenceProvider`) spreads the whole bootstrap payload
 (`conference`, `venues`, `travel`, `tracks`, `tags`, `rooms`, `users`, `days`, `formats`,

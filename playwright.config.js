@@ -75,7 +75,8 @@ export default defineConfig({
   webServer: [
     {
       command: 'npm run dev',
-      url: `http://localhost:${process.env.WEB_PORT ?? 5173}`,
+      // /api/health through Vite's proxy: ready only once both the web server and the API answer.
+      url: `http://localhost:${process.env.WEB_PORT ?? 5173}/api/health`,
       reuseExistingServer: !process.env.CI && !process.env.ORBIT_LANE,
       timeout: 90_000,
       stdout: 'ignore',

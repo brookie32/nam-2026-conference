@@ -16,6 +16,7 @@ const NAV = [
   { to: '/venues', label: 'Venues', icon: 'building' },
   { to: '/food', label: 'Food', icon: 'food' },
   { to: '/expo', label: 'Expo', icon: 'grid' },
+  { to: '/ask', label: 'Ask ORBIT', icon: 'chat' },
 ];
 
 const TABS = ['/', '/schedule', '/my-agenda', '/venues']
@@ -122,7 +123,7 @@ export function Layout() {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) => cx(
-                  'relative rounded-lg px-3 py-2 text-[13px] font-medium transition-colors',
+                  'relative rounded-lg px-2.5 py-2 text-[13px] xl:px-3 font-medium transition-colors',
                   isActive ? 'text-ink' : 'text-muted hover:text-ink',
                 )}
               >
@@ -135,7 +136,7 @@ export function Layout() {
                       </span>
                     )}
                     {isActive && (
-                      <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-gradient-to-r from-violet-400 to-cyan-400" />
+                      <span className="absolute inset-x-2.5 -bottom-px xl:inset-x-3 h-0.5 rounded-full bg-gradient-to-r from-violet-400 to-cyan-400" />
                     )}
                   </>
                 )}
