@@ -12,9 +12,30 @@ const reply = (text) => ({
   body: sse([{ type: 'text-start', id: 't' }, { type: 'text-delta', id: 't', delta: text }, { type: 'text-end', id: 't' }]),
 });
 
-test('Ask ORBIT panel: opens from every page and from Home, closes cleanly, stays off the tab bar, carries the page, streams', async ({ page }) => {
+test('Ask ORBIT panel: opens from every page and from Home, closes cleanly, stays off the tab bar, carries the page, and streams', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   const at = await momentOn(0, '14:00');
+  // A question that says "hold" gets a stream that sends text, then waits for window.__release.
+  await page.addInitScript(() => {
+    const real = window.fetch.bind(window);
+    window.__released = false;
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : input.url;
+      if (!url.includes('/api/ask') || !String(init?.body).includes('hold')) return real(input, init);
+      const enc = new TextEncoder();
+      const send = (c, o) => c.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`));
+      return Promise.resolve(new Response(new ReadableStream({
+        async start(c) {
+          for (const o of [{ type: 'start' }, { type: 'start-step' }, { type: 'text-start', id: 't' }, { type: 'text-delta', id: 't', delta: 'First words' }]) send(c, o);
+          await new Promise((r) => { window.__release = r; });
+          window.__released = true;
+          for (const o of [{ type: 'text-delta', id: 't', delta: ' and the rest' }, { type: 'text-end', id: 't' }, { type: 'finish-step' }, { type: 'finish' }]) send(c, o);
+          c.enqueue(enc.encode('data: [DONE]\n\n'));
+          c.close();
+        },
+      }), { status: 200, headers: { 'content-type': 'text/event-stream', 'x-vercel-ai-ui-message-stream': 'v1' } }));
+    };
+  });
   const bodies = [];
   await page.route('**/api/ask', (route) => { bodies.push(route.request().postDataJSON()); return route.fulfill(reply('Sure.')); });
   const dialog = page.getByRole('dialog', { name: 'Ask ORBIT' });
@@ -71,33 +92,9 @@ test('Ask ORBIT panel: opens from every page and from Home, closes cleanly, stay
   const last = bodies.at(-1);
   expect(last.sessionId).toBe(sessions[0].id);
   expect(last.route).toBe(`/sessions/${sessions[0].id}`);
-});
 
-test('Ask ORBIT panel: text shows before the stream finishes', async ({ page }) => {
-  await page.addInitScript(() => {
-    const real = window.fetch.bind(window);
-    window.__released = false;
-    window.fetch = (input, init) => {
-      const url = typeof input === 'string' ? input : input.url;
-      if (!url.includes('/api/ask')) return real(input, init);
-      const enc = new TextEncoder();
-      const send = (c, o) => c.enqueue(enc.encode(`data: ${JSON.stringify(o)}\n\n`));
-      return Promise.resolve(new Response(new ReadableStream({
-        async start(c) {
-          for (const o of [{ type: 'start' }, { type: 'start-step' }, { type: 'text-start', id: 't' }, { type: 'text-delta', id: 't', delta: 'First words' }]) send(c, o);
-          await new Promise((r) => { window.__release = r; });
-          window.__released = true;
-          for (const o of [{ type: 'text-delta', id: 't', delta: ' and the rest' }, { type: 'text-end', id: 't' }, { type: 'finish-step' }, { type: 'finish' }]) send(c, o);
-          c.enqueue(enc.encode('data: [DONE]\n\n'));
-          c.close();
-        },
-      }), { status: 200, headers: { 'content-type': 'text/event-stream', 'x-vercel-ai-ui-message-stream': 'v1' } }));
-    };
-  });
-  await visit(page, '/', { at: await momentOn(0, '14:00') });
-  await page.getByRole('button', { name: 'Ask ORBIT' }).click();
-  const dialog = page.getByRole('dialog', { name: 'Ask ORBIT' });
-  await dialog.getByTestId('ask-input').fill('hello');
+  // Streaming: the first text is on the page while the stream is still open.
+  await dialog.getByTestId('ask-input').fill('hold the answer');
   await dialog.getByRole('button', { name: 'Send' }).click();
   await expect(dialog.getByText('First words')).toBeVisible();
   expect(await page.evaluate(() => window.__released)).toBe(false);

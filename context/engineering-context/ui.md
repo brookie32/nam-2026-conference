@@ -130,7 +130,7 @@ default). `Reveal({ as, delay })` = `useInView` + `reveal`. `CountUp({ value,
 duration })` counts once visible. `HeroMedia` (home hero only) probes
 `/images/hero-1..6.jpg`, cross-fades those that load, renders nothing if none.
 
-**`Layout.jsx`** — the route shell (`<Route element={<Layout />}>` in
+**`Layout.jsx`** — the route shell (wrapped in `AskProvider`, with the fixed `AskLauncher` and `AskPanel` beside `TabBar`) (`<Route element={<Layout />}>` in
 `App.jsx`). Renders `<RouteChange />`, the global `<ConflictDialog>` (wired to
 `conflict` / `resolveConflict` from the store), a skip link to `#main`, the
 sticky `glass` header, `<main id="main">`, and the footer.
@@ -165,7 +165,7 @@ sticky `glass` header, `<main id="main">`, and the footer.
   `/speakers/<currentUser.speakerId>`, which marks itself "This is you"
   (speakers doc). `tests/switcher.spec.js` covers the switcher and that link.
 
-**`HomePage`** (`/`) — one personal card, nothing live. It stacks `HeroBar` (`hero`: name, `conference.dates · city`, a
+**`HomePage`** (`/`) — one personal card, nothing live. Above `QuickLinks` sits an "Ask anything…" form that opens the Ask ORBIT panel with the question sent (architecture doc). It stacks `HeroBar` (`hero`: name, `conference.dates · city`, a
 `Day n · time` chip from `clock`, and `Browse today` → `/schedule?day=<clock.day>`
 plus `Speakers` buttons) → `UpNextCard` (`up-next`: the attendee's in-progress or next confirmed session from `api.getToday`, with room, venue and `startPhrase`; `up-next-checkin` shown only when the attendance endpoint says `canCheckIn`, then `up-next-checked-in`; `up-next-empty` links to `/schedule?day=<clock.day>`; renders `null` until first response) → `RateItPrompt` (`rate-it`, owned by the attendance doc; null when nothing to rate) → `RecommendedStrip` (`recs-strip`: first 3 of `api.getRecommendations` with the same call and deps as `/for-you`, as `recs-item` (`data-session-id`) links to `/sessions/:id` with `recs-reason`; `recs-see-all` → `/for-you`; `recs-invite` when `needsInterests`; null while loading, on error or when empty) → `HappeningNow`
 (`happening-now`, `src/components/HappeningNow.jsx`: `api.getLive(clock)` sessions as `happening-now-session` rows linking `/sessions/:id` with `LiveBadge`; `happening-now-empty` + schedule link, wording from `dayStartsAt`/`dayEndsAt`/`nextSlot` via `emptyMessage`; holds the announcement, `announcements`: the single newest posted one, pinned first, filtered by

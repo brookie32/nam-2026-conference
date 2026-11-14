@@ -1,8 +1,12 @@
 import './sandbox-db.js';
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { askSystemPrompt, pageContext, programmeOn } from '../../server/lib/ask.js';
-import { db } from '../../server/db.js';
+import { execFileSync } from 'node:child_process';
+
+// The prompt builders read the programme, so seed the sandbox database before server/ opens it.
+execFileSync(process.execPath, ['server/seed.js'], { env: process.env, stdio: 'ignore' });
+const { askSystemPrompt, pageContext, programmeOn } = await import('../../server/lib/ask.js');
+const { db } = await import('../../server/db.js');
 
 const agenda = [
   { id: 11, title: 'Agents in anger', startsAt: '13:00', endsAt: '13:45', room: { name: 'Hall B' }, reservation: 'confirmed' },
