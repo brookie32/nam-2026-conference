@@ -10,6 +10,12 @@ import { sessionsRouter } from './routes/sessions.js';
 import { speakersRouter } from './routes/speakers.js';
 import { usersRouter } from './routes/users.js';
 
+// Local secrets such as AI_GATEWAY_API_KEY live in a gitignored .env at the repo root.
+// CI and a fresh fork have none, so a missing file is fine. Loaded in code rather than
+// with `node --env-file-if-exists`, which stalled `node --watch` on CI's Linux runners.
+const ENV_FILE = resolve(dirname(fileURLToPath(import.meta.url)), '..', '.env');
+if (existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);
+
 const PORT = process.env.PORT ?? 3001;
 // `npm run build` output. Absent under `npm run dev` (Vite serves the web),
 // present under `npm start`, where this one process serves both.

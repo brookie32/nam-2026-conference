@@ -106,8 +106,9 @@ text reply (`streamText().pipeTextStreamToResponse`); 503 `{ error: 'Ask ORBIT i
 when `askModel()` is null, 400 on an empty or malformed `messages`. `server/lib/ask.js`: `askModel()`
 is the injected model (`setAskModel`, the test seam), else the AI Gateway model
 (`ASK_ORBIT_MODEL`, default `anthropic/claude-sonnet-5.5`) when `AI_GATEWAY_API_KEY` is set, read per
-request. Locally the key lives in a gitignored `.env`: `dev:api` and `start` run Node with
-`--env-file-if-exists=.env`, so it is picked up when present and ignored when not (CI, a fresh fork). `askTools` (`searchSessions`, `findSpeakers`, `venuesAndTravel`) are the model's only data;
+request. Locally the key lives in a gitignored `.env` at the repo root, which `server/index.js`
+loads with `process.loadEnvFile` when it exists (CI and a fresh fork have none). Not
+`node --env-file-if-exists`: with `--watch` it stalled the API on CI's Linux runners. `askTools` (`searchSessions`, `findSpeakers`, `venuesAndTravel`) are the model's only data;
 they return session ids so the reply links `[title](/sessions/<id>)`, and the page renders only those
 links (`renderReply`). `askOrbit()` in `api.js` returns the body reader; the page learns "not
 configured" from the 503 on send (`ask-not-configured`). Tests stub the model and `/api/ask`.
