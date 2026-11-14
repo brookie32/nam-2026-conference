@@ -74,11 +74,12 @@ Below `lg` the open rail is compact so the first card stays in view at 393×659:
 row (no weekday or count), tracks in one scrolling row (the Day and Track headings turn screen-reader-only), selects in two columns, and the
 My agenda card is desktop-only (`starred-count` stays in the DOM, `hidden lg:block`);
 its link opens `/my-agenda`, which is a placeholder (agenda doc).
+the day heading row and its gap to the first slot are tighter below `sm` (`pb-2`, `space-y-3`) to pay for the 44px **Jump to now** below `lg`.
 `result-count` shows `Loading…` then `N sessions`.
 **Jump to now** (`jump-to-now`, in the day heading row after the *Today* chip) shows only when
 `filters.day === clock.day` and `jumpTarget(sessions, clock)` (clock doc) is non-null, so
 filters apply and it vanishes after the last slot. Click scrolls `[data-slot=<HH:MM>]` to the top
-once, never on load. List `slot-<HH:MM>` sections and grid `grid-slot-<HH:MM>` wrappers carry
+once, never on load. It is the `sm` button (32px) from `lg` up and `max-lg:h-11` (44px tap target) below. List `slot-<HH:MM>` sections and grid `grid-slot-<HH:MM>` wrappers carry
 `data-slot` and `scroll-mt-20` (clears the sticky header).
 
 **`ScheduleGrid`** (`schedule-grid`, `role="table"`) — splits `sessions` into

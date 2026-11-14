@@ -260,9 +260,9 @@ export function SchedulePage() {
           <div className="card p-3 lg:p-4">{rail}</div>
         </aside>
 
-        <div className="min-w-0 space-y-5">
+        <div className="min-w-0 space-y-3 sm:space-y-5">
           {/* The day being shown is the most important fact on this screen. */}
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-hairline pb-3">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-hairline pb-2 sm:pb-3">
             <div className="flex flex-wrap items-baseline gap-3">
               <h2 className="font-display text-2xl leading-none sm:text-3xl">
                 {dayLabel(filters.day)}
@@ -276,6 +276,7 @@ export function SchedulePage() {
               {!loading && nowSlot && (
                 <Button
                   size="sm"
+                  className="max-lg:h-11"
                   data-testid="jump-to-now"
                   onClick={() => document.querySelector(`[data-slot="${nowSlot}"]`)?.scrollIntoView({ block: 'start' })}
                 >
