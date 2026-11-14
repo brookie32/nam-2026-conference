@@ -422,6 +422,16 @@ test.describe('Jump to now', () => {
     await waitForResults(page);
   };
 
+  test('the button is a 44px tap target on a phone and 32px on a desktop', async ({ page }, testInfo) => {
+    const phone = testInfo.project.name === 'mobile';
+    await page.setViewportSize(phone ? { width: 375, height: 659 } : { width: 1440, height: 900 });
+    await open(page, 'list', '15:00');
+    const box = await page.getByTestId('jump-to-now').boundingBox();
+    if (phone) expect(box.height).toBeGreaterThanOrEqual(44);
+    else expect(box.height).toBe(32);
+    await shotForPR(page, phone ? 'Jump to now, 44px tall on a phone' : 'Jump to now, 32px on a desktop');
+  });
+
   for (const view of ['list', 'grid']) {
     const slotId = (t) => (view === 'list' ? `slot-${t}` : `grid-slot-${t}`);
 
