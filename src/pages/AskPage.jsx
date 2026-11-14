@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
 import { askOrbit } from '../lib/api.js';
+import { splitReply } from '../lib/splitReply.js';
 import { Button, SectionHeader, cx } from '../components/ui.jsx';
 import { Icon } from '../components/Icon.jsx';
 
@@ -21,6 +22,25 @@ export function renderReply(text) {
   }
   if (last < text.length) parts.push(text.slice(last));
   return parts;
+}
+
+function ReplyBody({ blocks }) {
+  return blocks.map((b, i) => b.table ? (
+    <div key={i} className="my-2 overflow-x-auto rounded-lg border border-hairline">
+      <table className="w-full text-left text-sm">
+        <thead className="bg-surface text-muted">
+          <tr>{b.table.head.map((h, c) => <th key={c} scope="col" className="whitespace-nowrap border-b border-hairline px-3 py-2 font-medium">{renderReply(h)}</th>)}</tr>
+        </thead>
+        <tbody>
+          {b.table.rows.map((row, r) => (
+            <tr key={r} className="border-t border-hairline first:border-t-0">
+              {row.map((cell, c) => <td key={c} className="whitespace-nowrap px-3 py-2 align-top">{renderReply(cell)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : <span key={i} className="whitespace-pre-wrap">{renderReply(b.text)}</span>);
 }
 
 const EXAMPLES = [
@@ -102,10 +122,10 @@ export function AskPage() {
         )}
         {messages.map((m, i) => (
           <div key={i} data-role={m.role} className={cx(
-            'max-w-[90%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm',
-            m.role === 'user' ? 'ml-auto bg-violet-500/15 text-ink' : 'border border-hairline bg-surface text-ink',
+            'max-w-[90%] min-w-0 rounded-2xl px-4 py-2.5 text-sm',
+            m.role === 'user' ? 'ml-auto whitespace-pre-wrap bg-violet-500/15 text-ink' : 'border border-hairline bg-surface text-ink',
           )}>
-            {m.role === 'assistant' ? (renderReply(m.content).length ? renderReply(m.content) : <span className="text-muted">Thinking…</span>) : m.content}
+            {m.role === 'assistant' ? (m.content.trim() ? <ReplyBody blocks={splitReply(m.content)} /> : <span className="text-muted">Thinking…</span>) : m.content}
           </div>
         ))}
         {failed && <p role="alert" className="text-sm text-rose-300">That did not work. Try again.</p>}
