@@ -145,6 +145,8 @@ export const LANES = {
   // there, and the agenda: false check-in lanes on that day never book. Interests are per attendee, so
   // the two panes use different attendees.
   'foryou.seat':      { desktop: { user: marcus, day: 2, slot: '17:15' }, mobile: { user: kenji, day: 2, slot: '17:15' } },
+  // Checks in and rates for real on day 0, so it clears its own unrated check-ins; books nothing.
+  'home.rate-it':     { desktop: { user: kenji, day: 0, slot: '13:30', agenda: false }, mobile: { user: sofia, day: 0, slot: '13:30', agenda: false } },
   'attendance.rating-toast':  { desktop: { user: marcus, day: 0, slot: '09:00', agenda: false }, mobile: { user: abraham, day: 0, slot: '09:00', agenda: false } },
 };
 

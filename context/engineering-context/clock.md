@@ -37,6 +37,7 @@ CLAUDE.md § The conference clock.
   `progressOf(session, now)` (0–1, clamped, on camelCase `startsAt`/`endsAt`),
   `relativeToNow(hhmm, now)` ('starting now' / 'in 12 min' / '8 min ago' /
   '2h 5m'), `startPhrase(hhmm, now)` (same, but 'started 8 min ago' for a past start), `isOpenAt(opens, closes, now)` (wraps past midnight),
+  `rateCandidates(sessions, checkIns, ratings, clock)` (checked-in, ended, unrated, latest first — Home's Rate it prompt),
   `hasEnded(session, clock)` (earlier day, or same day at/after `endsAt`; false
   without a clock — the client mirror of the API's `rejected: 'ended'` rule).
   `jumpTarget(sessions, clock)` → `startsAt` of the slot in progress, else the next
@@ -59,8 +60,7 @@ everything starting at `nextSlot`, keynotes then rating first. `dayStartsAt` /
 `dayEndsAt` are the day's `MIN(starts_at)` / `MAX(ends_at)`, `null` for a day
 with no sessions.
 
-Client: `api.getLive({ day, time })` — **no UI calls it yet**; it is there for
-workshop teams to build a "happening now" view on. `tests/live.spec.js` covers
+Client: `api.getLive({ day, time })` — `HappeningNow` on Home calls it (`happening-now`). `tests/live.spec.js` covers
 the endpoint (`the live endpoint lists only what is running`).
 
 **`LiveBadge`** (`src/components/LiveBadge.jsx`, the file's only export) — the

@@ -5,10 +5,12 @@ read_when: touching check-in, the check-in window, ratings or reviews, avg_ratin
 files:
   - server/lib/attendance.js
   - src/components/AttendancePanel.jsx
+  - src/components/RateItPrompt.jsx
 tests:
   - tests/api/attendance.test.js
   - tests/api/ratings.test.js
   - tests/unit/attendance.test.js
+  - tests/unit/rate-it.test.js
   - tests/attendance.spec.js
 related: [seats, clock, seed, speakers]
 ---
@@ -117,3 +119,5 @@ Testids: `attendance-panel`, `check-in`, `checked-in`, `rating-form`,
 - Who may rate: `attendance.js:rateSession` and `attendanceState.canRate`.
 - A new roll-up (e.g. per track): next to `recompute` in `attendance.js`, and
   the matching block at the end of `server/seed.js`.
+
+**`RateItPrompt`** (Home, `rate-it`; link `rate-it-session`) — the latest session the signed-in attendee checked in to, that has ended by the clock and is unrated, picked by the pure `rateCandidates(sessions, checkIns, ratings, clock)` in `src/lib/clock.js` from `api.getUser` + `api.getSessions` (every checked-in session, any day). A tap on an exported `Stars` from `AttendancePanel` calls `api.rateSession` with stars only, then reloads the user and toasts "Rating saved".
