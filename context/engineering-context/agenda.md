@@ -31,7 +31,7 @@ as `agenda-focus`. The header carries `agenda-calendar`, a link to
 `agenda-day-waitlisted` (only when above 0), `agenda-day-clashes`, `agenda-day-venues`;
 rows are `agenda-row` (`data-session-id`, `data-clash`) around `SessionCard variant="row"`
 (attendance for confirmed seats only). Waitlisted rows add `agenda-position` — "Position N
-of M" from `seatsFor`, else `api.getSeatState`. No reservations: `agenda-empty`.
+of M" from `seatsFor`, else `api.getSeatState`. Between adjacent confirmed rows at different venues `agenda-travel` (`data-state` warn|ok, `data-from`/`data-to` session ids) renders before the later row, from `agenda.js:travelNotes(sessions, travel)` — the fastest non-Walk mode's `minutes + walkMinutes` against the gap; warn when the gap is shorter; clashes and waitlisted rows get none. No reservations: `agenda-empty`.
 Everything underneath it is built and tested:
 adding a session takes a seat (seats doc), and the payloads below are served,
 with matching functions in `src/lib/api.js`. What a day is made of is decided in

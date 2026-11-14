@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useConference, useFetch } from '../lib/store.jsx';
 import * as api from '../lib/api.js';
-import { agendaDays, focusSession, orderDays } from '../lib/agenda.js';
+import { agendaDays, focusSession, orderDays, travelNotes } from '../lib/agenda.js';
 import { hasEnded, toMinutes } from '../lib/clock.js';
 import { dayLabel, plural } from '../lib/format.js';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
@@ -32,7 +32,25 @@ function WaitlistPosition({ session }) {
   );
 }
 
+/** The journey between two venues: an amber warning when the gap is too short, else a plain note. */
+function TravelNote({ note }) {
+  const { fastest, gapMinutes, warn, from, to } = note;
+  return (
+    <li data-testid="agenda-travel" data-state={warn ? 'warn' : 'ok'} data-from={from.id} data-to={to.id}
+      className={cx('flex min-w-0 items-start gap-2 px-3 text-xs', warn ? 'font-semibold text-amber-300' : 'text-muted')}>
+      <Icon name={warn ? 'alert' : 'car'} className="mt-0.5 size-3.5 shrink-0" />
+      <span className="min-w-0">
+        {warn
+          ? `You'll need ~${fastest.total} min by ${fastest.mode}; you have ${gapMinutes}`
+          : `~${fastest.total} min by ${fastest.mode} to ${to.venue.name}; you have ${gapMinutes}`}
+      </span>
+    </li>
+  );
+}
+
 function AgendaDay({ day, clock }) {
+  const { travel } = useConference();
+  const notes = travelNotes(day.sessions, travel);
   const clashing = new Set(day.conflicts.flatMap((c) => c.sessionIds));
   const focus = day.date === clock.day ? focusSession(day, clock.time) : null;
   const running = focus && toMinutes(focus.startsAt) <= toMinutes(clock.time);
@@ -61,7 +79,9 @@ function AgendaDay({ day, clock }) {
           const confirmed = s.reservation === 'confirmed';
           const isFocus = focus?.id === s.id;
           return (
-            <li key={s.id} data-testid="agenda-row" data-session-id={s.id}
+            <Fragment key={s.id}>
+            {notes.has(s.id) && <TravelNote note={notes.get(s.id)} />}
+            <li data-testid="agenda-row" data-session-id={s.id}
               data-clash={clashing.has(s.id) ? 'true' : undefined}
               className={cx('rounded-xl', clashing.has(s.id) && 'ring-1 ring-rose-400/60',
                 isFocus && 'ring-2 ring-violet-400', !confirmed && 'border border-dashed border-amber-400/40')}>
@@ -75,6 +95,7 @@ function AgendaDay({ day, clock }) {
                 attendance={confirmed ? { ended: hasEnded(s, clock), checkedIn: s.checkedIn, myStars: s.myStars } : null} />
               {!confirmed && <WaitlistPosition session={s} />}
             </li>
+            </Fragment>
           );
         })}
       </ul>

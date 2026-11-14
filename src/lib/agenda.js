@@ -1,4 +1,5 @@
 import { toMinutes } from './clock.js';
+import { assessTravel } from './travel.js';
 
 const length = (s) => toMinutes(s.endsAt) - toMinutes(s.startsAt);
 
@@ -50,4 +51,23 @@ export function focusSession(day, nowHHMM) {
   const mine = day.sessions.filter((s) => s.reservation === 'confirmed');
   return mine.find((s) => toMinutes(s.startsAt) <= now && now < toMinutes(s.endsAt))
     ?? mine.find((s) => toMinutes(s.startsAt) > now) ?? null;
+}
+
+/**
+ * Travel notes for one day's sessions (in start order): for each adjacent pair of
+ * confirmed sessions at different venues, the fastest mode (journey plus the walk
+ * to the room) against the gap. Keyed by the later session's id; `warn` when the
+ * gap is shorter than that time. Clashes (negative gap) and unroutable pairs are left out.
+ */
+export function travelNotes(sessions, travel) {
+  const mine = sessions.filter((s) => s.reservation === 'confirmed');
+  const notes = new Map();
+  for (let i = 1; i < mine.length; i++) {
+    const [from, to] = [mine[i - 1], mine[i]];
+    const gapMinutes = toMinutes(to.startsAt) - toMinutes(from.endsAt);
+    if (gapMinutes < 0) continue;
+    const a = assessTravel({ travel, from, to, gapMinutes });
+    if (a) notes.set(to.id, { from, to, gapMinutes, fastest: a.fastest, warn: !a.fastest.fits });
+  }
+  return notes;
 }
