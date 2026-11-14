@@ -44,6 +44,27 @@ export const getUser = (id) => api(`/users/${id}`);
 export const getSchedule = (userId) => api(`/users/${userId}/schedule`);
 export const getToday = (userId, { day, time }) => api(`/users/${userId}/today${qs({ day, time })}`);
 
+/**
+ * Ask ORBIT: POST the conversation and hand back the response body reader, a
+ * plain text stream. Throws like `api()` does (`status` 503 when not configured).
+ */
+export async function askOrbit(messages, { signal } = {}) {
+  const res = await fetch(`${BASE}/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messages }),
+    signal,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const error = new Error(body.error ?? `Request failed: ${res.status}`);
+    error.status = res.status;
+    error.payload = body;
+    throw error;
+  }
+  return res.body.getReader();
+}
+
 export const reserveSeat = (userId, sessionId, now) =>
   api(`/users/${userId}/reservations/${sessionId}`, { method: 'PUT', body: JSON.stringify(now ?? {}) });
 export const releaseSeat = (userId, sessionId) => api(`/users/${userId}/reservations/${sessionId}`, { method: 'DELETE' });

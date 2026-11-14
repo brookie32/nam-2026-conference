@@ -105,7 +105,7 @@ describe('Ask ORBIT with a stubbed model', () => {
 
   test('streams the reply in more than one chunk', async () => {
     const { days } = await api.json('/bootstrap');
-    setAskModel(searchingModel({ day: days[1].date, trackSlug: (await api.json('/bootstrap')).tracks[0].slug }));
+    setAskModel(searchingModel({ day: days[1].date, from: '12:00' }));
     const res = await fetch(`${origin}/api/ask`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

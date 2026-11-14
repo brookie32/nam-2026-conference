@@ -191,12 +191,12 @@ describe('Every endpoint answers', () => {
     const { readFileSync, readdirSync } = await import('node:fs');
     const mounted = readdirSync('server/routes')
       .flatMap((file) => [...readFileSync(`server/routes/${file}`, 'utf8')
-        .matchAll(/Router\.(get|put|delete)\('([^']*)'/g)]
+        .matchAll(/Router\.(get|put|delete|post)\('([^']*)'/g)]
         .map((m) => `${m[1].toUpperCase()} ${file.replace('.js', '')}${m[2]}`));
 
     // Paths this file or its siblings drive. Keep in step with server/routes/.
     const covered = [
-      'GET meta/bootstrap', 'GET meta/venues', 'GET meta/vendors', 'GET meta/sponsors',
+      'POST ask/', 'GET meta/bootstrap', 'GET meta/venues', 'GET meta/vendors', 'GET meta/sponsors',
       'GET meta/announcements', 'GET meta/live',
       'GET sessions/', 'GET sessions/:id', 'GET sessions/:id.ics',
       'GET speakers/', 'GET speakers/:id',

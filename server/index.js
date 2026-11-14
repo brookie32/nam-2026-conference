@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { db, DB_PATH } from './db.js';
+import { askRouter } from './routes/ask.js';
 import { metaRouter } from './routes/meta.js';
 import { sessionsRouter } from './routes/sessions.js';
 import { speakersRouter } from './routes/speakers.js';
@@ -26,6 +27,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api', metaRouter);
+app.use('/api/ask', askRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/speakers', speakersRouter);
 app.use('/api/users', usersRouter);
