@@ -44,6 +44,75 @@ test.describe('Home is a way in, not a feed', () => {
   });
 });
 
+test.describe('Happening now strip', () => {
+  test('lists what /api/live returns, says so when nothing is live, carries the latest announcement, and fits a phone', async ({ page, request }, testInfo) => {
+    const days = await conferenceDays();
+    const live = async (time) =>
+      (await request.get(`${API}/live?day=${days[0]}&time=${time}`)).json();
+    const strip = page.getByTestId('happening-now');
+
+    // Mid-session: exactly the API's sessions, in order, each linked.
+    const mid = await live('10:30');
+    expect(mid.happeningNow.length, 'something is running at 10:30 on day 1').toBeGreaterThan(0);
+    await visit(page, '/', { at: await momentOn(0, '10:30') });
+    const rows = strip.getByTestId('happening-now-session');
+    await expect(rows).toHaveCount(mid.happeningNow.length);
+    for (const [i, s] of mid.happeningNow.entries()) {
+      await expect(rows.nth(i)).toContainText(s.title);
+      await expect(rows.nth(i)).toContainText(s.room.name);
+      await expect(rows.nth(i).getByRole('link')).toHaveAttribute('href', `/sessions/${s.id}`);
+    }
+    await expect(strip.getByTestId('happening-now-empty')).toHaveCount(0);
+
+    // The latest announcement sits inside the strip, and only once.
+    const all = await (await request.get(`${API}/announcements`)).json();
+    const cutoff = `${days[0]}T10:30:00Z`;
+    const expected = all
+      .filter((a) => a.postedAt <= cutoff)
+      .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.postedAt.localeCompare(a.postedAt))[0];
+    await expect(strip.getByTestId('announcements')).toContainText(expected.title);
+    await expect(page.getByTestId('announcements')).toHaveCount(1);
+
+    await shotForPR(page, 'happening-now-strip');
+    if (testInfo.project.name === 'mobile') {
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+      const box = await strip.boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(375);
+    }
+
+    // Nothing live: before the first slot, between slots, and after the last.
+    const schedule = `/schedule?day=${days[0]}`;
+    const empty = strip.getByTestId('happening-now-empty');
+    const before = await live('07:00');
+    await visit(page, '/', { at: await momentOn(0, '07:00') });
+    await expect(empty).toBeVisible();
+    await expect(empty).toContainText(`starts at ${before.dayStartsAt}`);
+    await expect(empty.getByRole('link')).toHaveAttribute('href', schedule);
+    await expect(rows).toHaveCount(0);
+
+    let gap = null;
+    for (let m = 8 * 60; m < 22 * 60 && !gap; m += 5) {
+      const t = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+      const l = await live(t);
+      if (!l.happeningNow.length && l.nextSlot && t > l.dayStartsAt) gap = l;
+    }
+    if (gap) {
+      await visit(page, '/', { at: await momentOn(0, gap.time) });
+      await expect(empty).toContainText(`next at ${gap.nextSlot}`);
+      await expect(rows).toHaveCount(0);
+    }
+
+    const after = await live('23:00');
+    await visit(page, '/', { at: await momentOn(0, '23:00') });
+    await expect(empty).toBeVisible();
+    await expect(empty).toContainText('over');
+    await expect(empty).not.toContainText(`starts at ${after.dayStartsAt}`);
+    await expect(empty.getByRole('link')).toHaveAttribute('href', schedule);
+    await expect(rows).toHaveCount(0);
+  });
+});
+
 const getToday = async (request, user, day, time) =>
   (await request.get(`${API}/users/${user}/today?day=${day}&time=${time}`)).json();
 
