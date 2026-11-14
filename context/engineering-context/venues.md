@@ -6,6 +6,7 @@ files:
   - src/pages/VenuesPage.jsx
   - src/components/VenueBoard.jsx
   - src/components/VenueRouteMap.jsx
+  - tests/venues.spec.js
   - src/lib/travel.js
   - src/pages/ExpoPage.jsx
   - src/pages/FoodPage.jsx
@@ -63,7 +64,7 @@ one card per mode, `Walk` greyed), a venue `role="tablist"` of
 `data-testid="venue-tab-{id}"` buttons, day buttons (`aria-pressed`),
 `VenueFacts`, then `VenueBoard`.
 
-**`VenueRouteMap({ venues, routes, className })`** — SVG 900×290. `project()`
+**`VenueRouteMap({ venues, routes, className })`** — two `MapCanvas` SVGs from a `LAYOUTS` table: `wide` 900×290 (`venue-map-wide`, `hidden lg:block`) and `phone` 280×240 (`venue-map-phone`, `lg:hidden max-w-md`, every label 12px+ once scaled; ids suffixed `-phone`). `project()`
 maps lng → x across `W - 2*PAD_X` and lat → y inside a `SPREAD_Y` band (north
 up), so positions come only from real coordinates. Draws a dashed quadratic arc
 between the first two venues, a label with the fastest non-Walk route, and a
