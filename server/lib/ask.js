@@ -2,6 +2,8 @@ import { gateway, tool } from 'ai';
 import { z } from 'zod';
 import { db } from '../db.js';
 import { SESSION_SELECT, hydrateSessions, toSpeaker, toTravel, toVenue } from './query.js';
+import { scheduleFor } from './agenda.js';
+import { rankedFor } from './recommend.js';
 
 /**
  * Ask ORBIT — the model and the tools it may call.
@@ -65,6 +67,7 @@ ${agendaLines(agenda)}
 ${page}
 The programme for that day, one session per line (id | title | time | room | track | seats left). It answers most questions, so use it first; use the tools for other days, speakers and travel:
 ${programme || 'No programme for that day.'}
+About the person: call myAgenda for their sessions on every day, what they checked into and how they rated sessions (myStars, 1-5; its ratings list is lowest first) — use it for "my lowest/highest rated", "what did I go to", "my agenda on Day 3". Call recommendForMe for talks picked for them (it already weighs their interests, followed speakers and the sessions they rated highly); explain picks with its reasons. They can only rate sessions they checked into once those are over.
 Formatting rules:
 - To show sessions, call showSessions with their ids; the app draws the cards, so do not repeat their details in text.
 - To show how to get between two venues, call showTravel with the venue ids; the app draws the options.
@@ -121,6 +124,53 @@ export function venuesAndTravel() {
     travel: db.prepare('SELECT * FROM venue_travel').all().map(toTravel),
   };
 }
+
+const ratedSessions = db.prepare(`${SESSION_SELECT}
+  WHERE s.id IN (SELECT session_id FROM ratings WHERE user_id = ?)`);
+const myRatingRows = db.prepare('SELECT session_id, stars, comment FROM ratings WHERE user_id = ?');
+
+/**
+ * The asking attendee's own conference: every day they hold a seat or waitlist place on, each
+ * session with its status, whether they checked in and their stars, plus every rating they gave,
+ * lowest first — so "my lowest-rated sessions" and "more like the ones I loved" need no guessing.
+ */
+export function myAgenda(userId) {
+  if (!Number.isInteger(userId) || userId <= 0) return { days: [], ratings: [] };
+  const days = scheduleFor(userId).map((d) => ({
+    date: d.date,
+    sessions: d.sessions.map((s) => ({
+      ...sessionBrief(s), status: s.reservation, checkedIn: s.checkedIn, myStars: s.myStars ?? null,
+    })),
+  }));
+  const byId = new Map(hydrateSessions(ratedSessions.all(userId)).map((s) => [s.id, s]));
+  const ratings = myRatingRows.all(userId)
+    .filter((r) => byId.has(r.session_id))
+    .map((r) => ({ ...sessionBrief(byId.get(r.session_id)), stars: r.stars, comment: r.comment ?? null }))
+    .sort((a, b) => a.stars - b.stars || a.day.localeCompare(b.day) || a.startsAt.localeCompare(b.startsAt));
+  return { days, ratings };
+}
+
+/** Talks picked for the asking attendee — the For you ranking, which weighs their interests, follows and ratings. */
+export function recommendForMe(userId, { day, time } = {}) {
+  if (!Number.isInteger(userId) || userId <= 0 || !day || !time) return { recommendations: [] };
+  const { items } = rankedFor(userId, { day, time }, 10);
+  return { recommendations: items.map(({ session, reasons }) => ({ ...sessionBrief(session), reasons })) };
+}
+
+/** The shared tools plus the two that read the asking attendee's own agenda, ratings and picks. */
+export const askToolsFor = ({ userId, day, time } = {}) => ({
+  ...askTools,
+  myAgenda: tool({
+    description: "The person's own agenda on every day (status, checkedIn, myStars 1-5) and every rating they gave, lowest first. Use for questions about their sessions, check-ins or ratings.",
+    inputSchema: z.object({}),
+    execute: async () => myAgenda(userId),
+  }),
+  recommendForMe: tool({
+    description: 'Talks picked for this person that they can still attend, ranked by their interests, followed speakers and the sessions they rated highly, each with its reasons.',
+    inputSchema: z.object({}),
+    execute: async () => recommendForMe(userId, { day, time }),
+  }),
+});
 
 export const askTools = {
   searchSessions: tool({

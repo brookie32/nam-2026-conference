@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { convertToModelMessages, stepCountIs, streamText } from 'ai';
 import { agendaOn } from '../lib/agenda.js';
-import { askModel, askSystemPrompt, askTools, pageContext, programmeOn } from '../lib/ask.js';
+import { askModel, askSystemPrompt, askToolsFor, pageContext, programmeOn } from '../lib/ask.js';
 
 export const askRouter = Router();
 
@@ -21,7 +21,7 @@ askRouter.post('/', (req, res) => {
     system: askSystemPrompt({ day: body.day, time: body.time, agenda: agendaOn(Number(body.userId), body.day),
       programme: programmeOn(body.day), page: pageContext(body) }),
     messages: convertToModelMessages(body.messages),
-    tools: askTools,
+    tools: askToolsFor({ userId: Number(body.userId), day: body.day, time: body.time }),
     stopWhen: stepCountIs(6),
     onError: ({ error }) => console.error('✗ ask', error),
   });

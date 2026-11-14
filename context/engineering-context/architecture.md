@@ -32,6 +32,7 @@ tests:
   - tests/api/contracts.test.js
   - tests/api/endpoints.test.js
   - tests/api/ask.test.js
+  - tests/api/ask-personal.test.js
   - tests/ask.spec.js
   - tests/ask-panel.spec.js
   - tests/unit/query.test.js
