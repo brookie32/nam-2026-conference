@@ -48,6 +48,24 @@ test('your sessions by day, with waitlist, clash, removal, empty state and the f
     expect(ids, `rows on ${day.date} in start order`).toEqual(sorted.map((s) => String(s.id)).filter((id) => ids.includes(id)));
   }
 
+  // The add-to-calendar link reaches the attendee's own feed: one VEVENT per confirmed session.
+  const button = page.getByTestId('agenda-calendar');
+  await expect(button).toHaveAttribute('href', `/api/users/${ATTENDEES.jonas}/agenda.ics`);
+  const feed = await request.get(new URL(await button.getAttribute('href'), page.url()).href);
+  expect(feed.headers()['content-type']).toContain('text/calendar');
+  const ics = await feed.text();
+  expect(ics).toContain('BEGIN:VCALENDAR');
+  const confirmedCount = plan.days.flatMap((d) => d.sessions).filter((s) => s.reservation === 'confirmed').length;
+  expect(confirmedCount).toBeGreaterThan(0);
+  expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(confirmedCount);
+  if (testInfo.project.name === 'mobile') {
+    const box = await button.boundingBox();
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(375);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
+  }
+  await shotForPR(page, 'My Agenda with the Add my agenda to calendar button');
+
   // The clock picks the highlighted row: in progress, then the day's first, and the pinned day comes first.
   const today = plan.days.find((d) => d.date === days[0]);
   await expect(page.getByTestId('agenda-focus')).toHaveAttribute('data-session-id', String(expectedFocus(today, '10:30').id));
@@ -103,6 +121,7 @@ test('your sessions by day, with waitlist, clash, removal, empty state and the f
   await page.route('**/api/users/*/schedule', (route) => route.fulfill({ json: { user: { id: lane.user }, days: [] } }));
   await visit(page, '/my-agenda', { as: lane.user });
   await expect(page.getByTestId('agenda-empty')).toBeVisible();
+  await expect(page.getByTestId('agenda-calendar')).toHaveCount(0);
   await expect(page.getByTestId('agenda-empty').getByRole('link')).toHaveAttribute('href', '/schedule');
   expect(errors).toEqual([]);
 });
