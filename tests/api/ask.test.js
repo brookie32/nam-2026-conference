@@ -196,6 +196,59 @@ describe('Ask ORBIT knows today and who is asking', () => {
   });
 });
 
+describe('Ask ORBIT is page-aware and streams for real', () => {
+  test('a session page\'s id reaches the prompt, with its title', async () => {
+    const session = await api.json('/sessions/3');
+    const seen = [];
+    setAskModel(recordingModel(seen));
+    const res = await ask('is this one full?', { route: '/sessions/3', sessionId: 3 });
+    assert.equal(res.status, 200);
+    const system = seen[0].find((m) => m.role === 'system').content;
+    assert.ok(system.includes(session.title), 'the prompt should name the session being looked at');
+    assert.ok(system.includes('/sessions/3'));
+  });
+
+  test('the first chunk arrives before the model has finished, and the response is not buffered', async () => {
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    let finished = false;
+    setAskModel(new MockLanguageModelV2({
+      doStream: async () => ({
+        stream: new ReadableStream({
+          async start(controller) {
+            controller.enqueue({ type: 'stream-start', warnings: [] });
+            controller.enqueue({ type: 'text-start', id: 'a' });
+            controller.enqueue({ type: 'text-delta', id: 'a', delta: 'first words' });
+            await gate;
+            finished = true;
+            controller.enqueue({ type: 'text-end', id: 'a' });
+            controller.enqueue({ type: 'finish', finishReason: 'stop', usage });
+            controller.close();
+          },
+        }),
+      }),
+    }));
+    const res = await fetch(`${origin}/api/ask`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ messages: [userMessage('hi')], day: '2026-01-01', time: '10:00', userId: 1 }),
+    });
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('x-accel-buffering'), /no/);
+    assert.match(res.headers.get('cache-control'), /no-transform/);
+    const reader = res.body.getReader();
+    let seen = '';
+    while (!seen.includes('first words')) {
+      const { value, done } = await reader.read();
+      assert.ok(!done, 'the stream ended before any text');
+      seen += Buffer.from(value).toString();
+    }
+    assert.equal(finished, false, 'text should arrive while the model is still going');
+    release();
+    while (!(await reader.read()).done);
+  });
+});
+
 describe('Ask ORBIT without a model', () => {
   test('answers 503 "not configured" when there is no key and no model', async () => {
     setAskModel(null);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useConference } from '../lib/store.jsx';
+import { useAsk } from '../lib/askChat.jsx';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
 import { time as fmtTime } from '../lib/format.js';
 import { SponsorMarquee } from '../components/SponsorMarquee.jsx';
@@ -91,6 +92,26 @@ function QuickLinks() {
   );
 }
 
+function AskAnything() {
+  const { openAsk } = useAsk();
+  const [question, setQuestion] = useState('');
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); if (question.trim()) { openAsk(question); setQuestion(''); } }}
+      className="flex items-center gap-2"
+    >
+      <input
+        aria-label="Ask anything…"
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        placeholder="Ask anything…"
+        className="min-h-11 min-w-0 flex-1 rounded-xl border border-hairline bg-surface px-3 text-sm text-ink placeholder:text-muted"
+      />
+      <Button type="submit" variant="primary" disabled={!question.trim()} className="min-h-11 shrink-0">Ask</Button>
+    </form>
+  );
+}
+
 export function HomePage() {
   const { conference } = useConference();
   useDocumentTitle("ORBIT '26");
@@ -106,6 +127,7 @@ export function HomePage() {
       <Reveal><RateItPrompt /></Reveal>
       <Reveal><RecommendedStrip picksVersion={picksVersion} /></Reveal>
       <Reveal><HappeningNow /></Reveal>
+      <AskAnything />
       <QuickLinks />
       <SponsorMarquee />
     </div>

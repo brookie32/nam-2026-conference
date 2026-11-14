@@ -27,13 +27,44 @@ const agendaLines = (agenda) => (agenda.length
   ? agenda.map((s) => `- id ${s.id}: ${s.title}, ${s.startsAt}-${s.endsAt}, ${s.room.name} (${s.reservation})`).join('\n')
   : 'Nothing booked that day.');
 
-export const askSystemPrompt = ({ day, time, agenda = [], days = conferenceDays() } = {}) => `You are ORBIT, the assistant for the ORBIT '26 conference programme.
+const programmeCache = new Map();
+const PROGRAMME_TTL_MS = 30_000;
+
+/** One line per session of `day`: `id | title | HH:MM-HH:MM | room | track | N seats left`. Cached 30 s per day. */
+export function programmeOn(day) {
+  const hit = programmeCache.get(day);
+  if (hit && Date.now() - hit.at < PROGRAMME_TTL_MS) return hit.text;
+  const sessions = hydrateSessions(db.prepare(`${SESSION_SELECT} WHERE s.day = ? ORDER BY s.starts_at, r.name`).all(day));
+  const text = sessions
+    .map((s) => `${s.id} | ${s.title} | ${s.startsAt}-${s.endsAt} | ${s.room.name} | ${s.track.name} | ${s.seatsLeft} seats left`)
+    .join('\n');
+  programmeCache.set(day, { at: Date.now(), text });
+  return text;
+}
+
+/** A sentence saying what the attendee is looking at, from the route and the id the page sent. */
+export function pageContext({ route, sessionId, speakerId } = {}) {
+  if (sessionId) {
+    const [s] = hydrateSessions(db.prepare(`${SESSION_SELECT} WHERE s.id = ?`).all(Number(sessionId)));
+    if (s) return `They are looking at the session "${s.title}" (id ${s.id}, ${s.day} ${s.startsAt}-${s.endsAt}, ${s.room.name}) at /sessions/${s.id}; "this talk" means it.`;
+  }
+  if (speakerId) {
+    const sp = db.prepare('SELECT name FROM speakers WHERE id = ?').get(Number(speakerId));
+    if (sp) return `They are looking at the profile of the speaker ${sp.name} at /speakers/${speakerId}; "this speaker" means them.`;
+  }
+  return typeof route === 'string' && route ? `They are on the page ${route.slice(0, 80)}.` : '';
+}
+
+export const askSystemPrompt = ({ day, time, agenda = [], days = conferenceDays(), programme = '', page = '' } = {}) => `You are ORBIT, the assistant for the ORBIT '26 conference programme.
 Answer only from the results of your tools; if they do not have it, say so. Never invent a session, speaker, room or time.
 Keep answers short. You cannot book seats. Conference days: ${days.map((d, i) => `Day ${i + 1} = ${d}`).join(', ')}.
 Times are 24-hour HH:MM; "afternoon" means from 12:00.
 Right now it is ${day ?? 'unknown'} at ${time ?? 'unknown'} on the conference clock. "Today" and "now" mean that.
 The person asking has these sessions on that day:
 ${agendaLines(agenda)}
+${page}
+The programme for that day, one session per line (id | title | time | room | track | seats left). It answers most questions, so use it first; use the tools for other days, speakers and travel:
+${programme || 'No programme for that day.'}
 Formatting rules:
 - To show sessions, call showSessions with their ids; the app draws the cards, so do not repeat their details in text.
 - To show how to get between two venues, call showTravel with the venue ids; the app draws the options.

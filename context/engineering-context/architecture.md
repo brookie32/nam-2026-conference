@@ -10,6 +10,9 @@ files:
   - server/routes/ask.js
   - server/lib/ask.js
   - src/pages/AskPage.jsx
+  - src/lib/askChat.jsx
+  - src/components/AskChat.jsx
+  - src/components/AskPanel.jsx
   - src/components/AskCards.jsx
   - tests/unit/ask-prompt.test.js
   - src/lib/splitReply.js
@@ -30,6 +33,7 @@ tests:
   - tests/api/endpoints.test.js
   - tests/api/ask.test.js
   - tests/ask.spec.js
+  - tests/ask-panel.spec.js
   - tests/unit/query.test.js
 related: [seats, agenda, clock, schedule, speakers, venues, seed, testing]
 ---
@@ -120,6 +124,14 @@ model's data; they return session ids so the reply links `[title](/sessions/<id>
 (`ask-travel` rows) from `AskCards.jsx`. `splitReply()` (`src/lib/splitReply.js`) splits text parts into text and Markdown-table
 blocks (a table needs a separator row, so a half-streamed one stays text until it arrives); `ReplyBody` renders tables in an
 `overflow-x-auto` wrapper. The page learns "not configured" from the 503 in `useChat`'s `error` (`ask-not-configured`).
+**Panel on every page.** `Layout` wraps its shell in `AskProvider` (`src/lib/askChat.jsx`), which holds the one `useChat` (so the panel and `/ask`
+share a conversation), `open`, `openAsk(question?)`, `closeAsk()` (returns focus to the launcher) and `chipsFor(pathname)`. The transport adds
+`route`, and `sessionId` / `speakerId` on `/sessions/:id` / `/speakers/:id`, at send time. `AskLauncher` (floating button, above the tab bar,
+hidden on `/ask`) and `AskPanel` (`role="dialog"`, right panel on `lg`, bottom sheet below; focus-trapped, Esc/Close) live in `AskPanel.jsx`;
+`AskChat.jsx` is the messages and form (a `tool-searchSessions|findSpeakers|venuesAndTravel` part still running shows `ask-searching`).
+Home's "Ask anything…" form calls `openAsk(question)`. Server: `programmeOn(day)` (one line per session, cached 30 s per day) and
+`pageContext({ route, sessionId, speakerId })` feed `askSystemPrompt({ …, programme, page })`; the route sends `Cache-Control: no-cache, no-transform`
+and `X-Accel-Buffering: no` through the SDK's `headers` option (a manual `flushHeaders()` makes the SDK's `writeHead` throw).
 Tests stub the model and `/api/ask`.
 
 **`useConference()`** (`store.jsx:ConferenceProvider`) spreads the whole bootstrap payload

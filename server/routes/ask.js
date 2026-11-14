@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { convertToModelMessages, stepCountIs, streamText } from 'ai';
 import { agendaOn } from '../lib/agenda.js';
-import { askModel, askSystemPrompt, askTools } from '../lib/ask.js';
+import { askModel, askSystemPrompt, askTools, pageContext, programmeOn } from '../lib/ask.js';
 
 export const askRouter = Router();
 
@@ -18,11 +18,15 @@ askRouter.post('/', (req, res) => {
 
   const result = streamText({
     model,
-    system: askSystemPrompt({ day: body.day, time: body.time, agenda: agendaOn(Number(body.userId), body.day) }),
+    system: askSystemPrompt({ day: body.day, time: body.time, agenda: agendaOn(Number(body.userId), body.day),
+      programme: programmeOn(body.day), page: pageContext(body) }),
     messages: convertToModelMessages(body.messages),
     tools: askTools,
     stopWhen: stepCountIs(6),
     onError: ({ error }) => console.error('✗ ask', error),
   });
-  result.pipeUIMessageStreamToResponse(res);
+  // Tell proxies not to hold the stream back. The SDK writes the head with these, then each chunk as it comes.
+  result.pipeUIMessageStreamToResponse(res, {
+    headers: { 'Cache-Control': 'no-cache, no-transform', 'X-Accel-Buffering': 'no' },
+  });
 });

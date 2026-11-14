@@ -6,6 +6,8 @@ import { RouteChange } from './RouteChange.jsx';
 import { ConflictDialog } from './ConflictDialog.jsx';
 import { Icon } from './Icon.jsx';
 import { OfflineBanner } from './OfflineBanner.jsx';
+import { AskProvider } from '../lib/askChat.jsx';
+import { AskLauncher, AskPanel } from './AskPanel.jsx';
 import { cx } from './ui.jsx';
 
 const NAV = [
@@ -73,6 +75,10 @@ function Logo() {
 }
 
 export function Layout() {
+  return <AskProvider><Shell /></AskProvider>;
+}
+
+function Shell() {
   const { ready, reservations, conflict, resolveConflict, conference } = useConference();
   const [menuOpen, setMenuOpen] = useState(false);
   const [swapping, setSwapping] = useState(false);
@@ -261,6 +267,8 @@ export function Layout() {
       </footer>
 
       <TabBar agendaCount={reservations.size} />
+      <AskLauncher />
+      <AskPanel />
     </div>
   );
 }
