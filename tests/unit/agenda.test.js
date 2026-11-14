@@ -1,6 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agendaDays, orderDays, focusSession } from '../../src/lib/agenda.js';
+import { agendaDays, orderDays, focusSession, travelNotes } from '../../src/lib/agenda.js';
 
 const s = (id, startsAt, endsAt, shortName = 'Aurora') => ({ id, startsAt, endsAt, venue: { shortName } });
 
@@ -74,5 +74,44 @@ describe('focusSession', () => {
   test('after the last one there is none; a session ending now is over', () => {
     assert.equal(focusSession(rsv, '14:00'), null);
     assert.equal(focusSession(rsv, '10:00').id, 2);
+  });
+});
+
+describe('travelNotes', () => {
+  const A = 1, F = 2;
+  const travel = [
+    { fromVenueId: A, toVenueId: F, mode: 'Shuttle', minutes: 27, costUsd: 0 },
+    { fromVenueId: A, toVenueId: F, mode: 'Rideshare', minutes: 18, costUsd: 23 },
+    { fromVenueId: A, toVenueId: F, mode: 'Walk', minutes: 118, costUsd: 0 },
+    { fromVenueId: F, toVenueId: A, mode: 'Taxi', minutes: 20, costUsd: 30 },
+  ];
+  const t = (id, startsAt, endsAt, venueId, walkMinutes = 10, reservation = 'confirmed') =>
+    ({ id, startsAt, endsAt, reservation, venue: { id: venueId }, room: { walkMinutes } });
+
+  test('names the fastest mode with journey plus walk to the room, and the return leg uses its own row', () => {
+    const out = travelNotes([t(1, '09:00', '09:45', A), t(2, '10:15', '11:00', F, 10), t(3, '12:00', '13:00', A, 5)], travel);
+    assert.deepEqual([...out.keys()], [2, 3]);
+    assert.equal(out.get(2).fastest.mode, 'Rideshare');
+    assert.equal(out.get(2).fastest.total, 28);
+    assert.equal(out.get(2).gapMinutes, 30);
+    assert.equal(out.get(3).fastest.mode, 'Taxi');
+    assert.equal(out.get(3).fastest.total, 25);
+  });
+
+  test('warns only when the gap is shorter than the total', () => {
+    const warn = (gapEnd) => travelNotes([t(1, '09:00', '10:00', A), t(2, gapEnd, '12:00', F, 10)], travel).get(2).warn;
+    assert.equal(warn('10:15'), true);   // 15 < 28
+    assert.equal(warn('10:28'), false);  // 28
+    assert.equal(warn('10:30'), false);  // 30
+  });
+
+  test('same-venue neighbours give nothing', () => {
+    assert.equal(travelNotes([t(1, '09:00', '10:00', A), t(2, '10:15', '11:00', A)], travel).size, 0);
+  });
+
+  test('waitlisted places are skipped, a clash gets no note, and a pair with no route gives nothing', () => {
+    assert.equal(travelNotes([t(1, '09:00', '10:00', A), t(2, '10:15', '11:00', F, 10, 'waitlisted'), t(3, '11:30', '12:00', A)], travel).size, 0);
+    assert.equal(travelNotes([t(1, '09:00', '10:00', A), t(2, '09:30', '11:00', F)], travel).size, 0);
+    assert.equal(travelNotes([t(1, '09:00', '10:00', A), t(2, '11:00', '12:00', 9)], travel).size, 0);
   });
 });

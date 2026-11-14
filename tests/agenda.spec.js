@@ -125,3 +125,52 @@ test('your sessions by day, with waitlist, clash, removal, empty state and the f
   await expect(page.getByTestId('agenda-empty').getByRole('link')).toHaveAttribute('href', '/schedule');
   expect(errors).toEqual([]);
 });
+
+test('a note between consecutive confirmed sessions at different venues: warning when short, plain when long enough', async ({ page, request }) => {
+  const errors = failOnPageErrors(page);
+  const { travel } = await (await request.get(`${API}/bootstrap`)).json();
+
+  // The expected notes, worked out from the payloads: adjacent confirmed pairs across venues, gap >= 0.
+  const expected = (plan) => plan.days.map((day) => {
+    const mine = day.sessions.filter((s) => s.reservation === 'confirmed').sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+    const notes = [];
+    for (let i = 1; i < mine.length; i++) {
+      const [from, to] = [mine[i - 1], mine[i]];
+      const gap = mins(to.startsAt) - mins(from.endsAt);
+      if (from.venue.id === to.venue.id || gap < 0) continue;
+      const best = travel.filter((t) => t.fromVenueId === from.venue.id && t.toVenueId === to.venue.id && t.mode !== 'Walk')
+        .map((t) => ({ mode: t.mode, total: t.minutes + (to.room.walkMinutes ?? 0) })).sort((a, b) => a.total - b.total)[0];
+      if (best) notes.push({ to, gap, ...best, warn: gap < best.total });
+    }
+    return { date: day.date, notes };
+  });
+
+  const days = await conferenceDays();
+  const seen = { warn: 0, ok: 0 };
+  for (const [who, dayIndex, state] of [[ATTENDEES.jonas, 3, 'ok'], [ATTENDEES.abraham, 2, 'warn']]) {
+    const plan = await (await request.get(`${API}/users/${who}/schedule`)).json();
+    await visit(page, '/my-agenda', { as: who, at: await momentOn(0, '08:00') });
+    await expect(page.getByTestId('agenda-day').first()).toBeVisible();
+    for (const { date, notes } of expected(plan)) {
+      const section = page.locator(`[data-testid="agenda-day"][data-date="${date}"]`);
+      await expect(section.getByTestId('agenda-travel')).toHaveCount(notes.length);
+      for (const n of notes) {
+        const note = section.locator(`[data-testid="agenda-travel"][data-to="${n.to.id}"]`);
+        await expect(note).toHaveAttribute('data-state', n.warn ? 'warn' : 'ok');
+        await expect(note).toContainText(`${n.total} min by ${n.mode}`);
+        await expect(note).toContainText(`you have ${n.gap}`);
+        seen[n.warn ? 'warn' : 'ok']++;
+      }
+    }
+    // The spec's named days: Jonas's Aurora to Foundry hop is a plain note, Abraham's a warning.
+    const named = page.locator(`[data-testid="agenda-day"][data-date="${days[dayIndex]}"]`).getByTestId('agenda-travel');
+    await expect(named.first()).toHaveAttribute('data-state', state);
+    await expect(named.first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    await named.first().scrollIntoViewIfNeeded();
+    await shotForPR(page, `${state === 'warn' ? 'Travel warning' : 'Travel note'} on My Agenda`);
+  }
+  expect(seen.warn).toBeGreaterThan(0);
+  expect(seen.ok).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+});
