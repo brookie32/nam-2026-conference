@@ -107,7 +107,9 @@ same shape. `GET /api/users/:id/recommendations?day=&time=` (day required) retur
 `rankRecommendations` (pure) drops ended, full, keynote, social, any session they hold
 (either status) and any clashing with a *confirmed* seat; score is 3 per picked
 track/topic/followed speaker, 1 for a topic tag shared with their agenda ("like your
-agenda"), 0 dropped; ties by `avgRating` then id; top 10. `needsInterests` (and no items)
+agenda"), and ratings (`rated` input, `RATED = 2`): each of their 4-5★ / 1-2★ rated sessions
+sharing a topic or speaker adds / subtracts 1 with reason `you rated <title> <n>★`, the sum clamped to
+±2 so a pick (3) still leads, 3★ ignored; score <= 0 dropped; ties by `avgRating` then id; top 10. `needsInterests` (and no items)
 when nothing is picked and nothing is booked. The page refetches on attendee, clock and
 `reservations`; rows are `foryou-item` (`data-session-id`) + `foryou-reason`; the empty
 state is `foryou-empty`. Browser lane `foryou.seat` (marcus/kenji, day index 2, 17:15).
