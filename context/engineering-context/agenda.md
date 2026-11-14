@@ -25,7 +25,9 @@ it through the store (sorted by start, `reservation` set, `conflicts`, both minu
 totals and `venuesVisited` recomputed, empty days dropped), so removing a row drops
 it at once. `orderDays(days, clock.day)` puts today first; `focusSession(day, hhmm)`
 picks the confirmed session in progress, else the next (never a waitlist place), shown
-as `agenda-focus`. Per day: `agenda-day` (`data-date`), `agenda-day-hours`,
+as `agenda-focus`. The header carries `agenda-calendar`, a link to
+`api.agendaCalendarUrl(currentUserId)`, shown only when some row is a confirmed seat
+(not for waitlist-only plans, nor while loading/error). Per day: `agenda-day` (`data-date`), `agenda-day-hours`,
 `agenda-day-waitlisted` (only when above 0), `agenda-day-clashes`, `agenda-day-venues`;
 rows are `agenda-row` (`data-session-id`, `data-clash`) around `SessionCard variant="row"`
 (attendance for confirmed seats only). Waitlisted rows add `agenda-position` — "Position N
