@@ -73,6 +73,7 @@ buttons `tab-<date>`, track pills, and `Select`s for venue/level/format/topic.
 Below `lg` the open rail is compact so the first card stays in view at 393×659: days in one
 row (no weekday or count), tracks in one scrolling row (the Day and Track headings turn screen-reader-only), selects in two columns, and the
 My agenda card is desktop-only (`starred-count` stays in the DOM, `hidden lg:block`);
+the day heading row and its gap to the first slot are tighter below `sm` (`pb-2`, `space-y-3`) to pay for the 44px **Jump to now** below `lg`;
 its link opens `/my-agenda`, which is a placeholder (agenda doc).
 `result-count` shows `Loading…` then `N sessions`.
 **Jump to now** (`jump-to-now`, in the day heading row after the *Today* chip) shows only when
