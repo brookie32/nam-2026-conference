@@ -65,7 +65,40 @@ function searchingModel(args) {
   });
 }
 
-const ask = (question) => api.post('/ask', { messages: [{ role: 'user', content: question }] });
+const userMessage = (text) => ({ id: 'u1', role: 'user', parts: [{ type: 'text', text }] });
+const ask = (question, extra = {}) => api.post('/ask', { messages: [userMessage(question)], ...extra });
+
+/** A stub that records the prompt it was called with, then answers in one text part. */
+function recordingModel(seen) {
+  return new MockLanguageModelV2({
+    doStream: async ({ prompt }) => {
+      seen.push(prompt);
+      return {
+        stream: simulateReadableStream({
+          chunks: [
+            { type: 'stream-start', warnings: [] },
+            { type: 'text-start', id: 'a' },
+            { type: 'text-delta', id: 'a', delta: 'ok' },
+            { type: 'text-end', id: 'a' },
+            { type: 'finish', finishReason: 'stop', usage },
+          ],
+        }),
+      };
+    },
+  });
+}
+
+/** A stub that calls one tool, then says it is done. */
+function toolModel(toolName, args) {
+  return new MockLanguageModelV2({
+    doStream: async ({ prompt }) => {
+      const chunks = lastToolResult(prompt)
+        ? [{ type: 'text-start', id: 'a' }, { type: 'text-delta', id: 'a', delta: 'done' }, { type: 'text-end', id: 'a' }, { type: 'finish', finishReason: 'stop', usage }]
+        : [{ type: 'tool-call', toolCallId: 't1', toolName, input: JSON.stringify(args) }, { type: 'finish', finishReason: 'tool-calls', usage }];
+      return { stream: simulateReadableStream({ chunks: [{ type: 'stream-start', warnings: [] }, ...chunks] }) };
+    },
+  });
+}
 
 describe('Ask ORBIT with a stubbed model', () => {
   test('names only the real Day 2 afternoon sessions on a track, each linked to /sessions/:id', async () => {
@@ -109,7 +142,7 @@ describe('Ask ORBIT with a stubbed model', () => {
     const res = await fetch(`${origin}/api/ask`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] }),
+      body: JSON.stringify({ messages: [userMessage('hi')], day: '2026-01-01', time: '10:00', userId: 1 }),
     });
     assert.equal(res.status, 200);
     let chunks = 0;
@@ -119,10 +152,47 @@ describe('Ask ORBIT with a stubbed model', () => {
 
   test('rejects a missing or empty messages array with 400', async () => {
     setAskModel(searchingModel({}));
-    for (const body of [{}, { messages: [] }, { messages: 'hi' }]) {
+    const old = [{ role: 'user', content: 'hi' }];
+    const noText = [{ id: 'x', role: 'user', parts: [] }];
+    const ok = [userMessage('hi')];
+    for (const body of [{}, { messages: [] }, { messages: 'hi' }, { messages: old, day: 'd', time: 't' },
+      { messages: noText, day: 'd', time: 't' }, { messages: ok }, { messages: ok, day: 'd', time: 5 }]) {
       const res = await api.post('/ask', body);
       assert.equal(res.status, 400, JSON.stringify(body));
     }
+  });
+});
+
+describe('Ask ORBIT knows today and who is asking', () => {
+  test('the system prompt carries the posted day and time and that attendee\'s agenda for the day', async () => {
+    const schedule = await api.json('/users/1/schedule');
+    const day = schedule.find((d) => d.sessions.length)?.date;
+    assert.ok(day, 'Jonas should have a booked day');
+    const titles = schedule.find((d) => d.date === day).sessions.map((s) => s.title);
+    const other = schedule.filter((d) => d.date !== day).flatMap((d) => d.sessions.map((s) => s.title));
+
+    const seen = [];
+    setAskModel(recordingModel(seen));
+    const res = await ask('what is on this afternoon?', { day, time: '14:00', userId: 1 });
+    assert.equal(res.status, 200);
+    const system = seen[0].find((m) => m.role === 'system').content;
+    assert.ok(system.includes(day) && system.includes('14:00'));
+    for (const t of titles) assert.ok(system.includes(t), `agenda title missing: ${t}`);
+    for (const t of other.filter((t) => !titles.includes(t))) assert.ok(!system.includes(t), `another day's title leaked: ${t}`);
+  });
+
+  test('a showSessions call streams as a tool-input-available chunk', async () => {
+    setAskModel(toolModel('showSessions', { ids: [1, 2] }));
+    const res = await ask('show me two', { day: '2026-01-01', time: '10:00', userId: 1 });
+    assert.equal(res.status, 200);
+    assert.match(res.text, /"type":"tool-input-available"[^\n]*"toolName":"showSessions"/);
+    assert.match(res.text, /"ids":\[1,2\]/);
+  });
+
+  test('a showTravel call streams as a tool-input-available chunk', async () => {
+    setAskModel(toolModel('showTravel', { fromVenueId: 1, toVenueId: 2 }));
+    const res = await ask('how do I get across', { day: '2026-01-01', time: '10:00', userId: 1 });
+    assert.match(res.text, /"toolName":"showTravel"/);
   });
 });
 
