@@ -5,6 +5,7 @@ import { reserveSeat, releaseSeat, seatState } from '../lib/seats.js';
 import { attendanceState, checkIn, rateSession } from '../lib/attendance.js';
 import { todayFor, scheduleFor } from '../lib/agenda.js';
 import { recommendationsFor } from '../lib/recommend.js';
+import { gapsFor } from '../lib/gaps.js';
 import { agendaCalendar, baseUrlFor } from '../lib/ical.js';
 
 export const usersRouter = Router();
@@ -119,6 +120,19 @@ usersRouter.get('/:id/recommendations', (req, res) => {
   if (!day) return res.status(400).json({ error: 'day is required' });
 
   res.json(recommendationsFor(Number(req.params.id), { day, time: time ?? '00:00' }));
+});
+
+/**
+ * GET /api/users/:id/gaps?day=&time=
+ * The free stretches (45 min or more) between their confirmed sessions that are
+ * not over yet, each with up to three talks that fit inside it.
+ */
+usersRouter.get('/:id/gaps', (req, res) => {
+  if (!userExists.get(req.params.id)) return res.status(404).json({ error: 'Attendee not found' });
+  const { day, time } = req.query;
+  if (!day) return res.status(400).json({ error: 'day is required' });
+
+  res.json(gapsFor(Number(req.params.id), { day, time: time ?? '00:00' }));
 });
 
 /**

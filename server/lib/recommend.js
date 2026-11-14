@@ -28,7 +28,7 @@ const hasEnded = (s, now) =>
  * `booked` is every session they hold a seat or waitlist place for, with its
  * `status`. Result: `{ items: [{ session, reasons }], needsInterests }`.
  */
-export function rankRecommendations({ sessions, interests, followedSpeakerIds, agendaTagSlugs, booked, rated = [], now }) {
+export function rankRecommendations({ sessions, interests, followedSpeakerIds, agendaTagSlugs, booked, rated = [], now, limit = LIMIT }) {
   const picked = new Set([...interests.tracks, ...interests.tags]);
   if (!picked.size && !booked.length) return { items: [], needsInterests: true };
 
@@ -68,7 +68,7 @@ export function rankRecommendations({ sessions, interests, followedSpeakerIds, a
 
   items.sort((a, b) => b.score - a.score || b.session.avgRating - a.session.avgRating || a.session.id - b.session.id);
   return {
-    items: items.slice(0, LIMIT).map(({ session, reasons }) => ({ session, reasons })),
+    items: items.slice(0, limit).map(({ session, reasons }) => ({ session, reasons })),
     needsInterests: false,
   };
 }
@@ -87,7 +87,8 @@ const queries = () => q ??= {
   follows: db.prepare('SELECT speaker_id FROM speaker_follows WHERE user_id = ?').pluck(),
 };
 
-export function recommendationsFor(userId, now) {
+/** The ranking for one attendee, `limit` deep, with the sessions they hold (`booked`, each with its `status`). */
+export function rankedFor(userId, now, limit = LIMIT) {
   const { everySession, reservedEver, rated, stars, statuses, pickedInterests, follows } = queries();
   const status = new Map(statuses.all(userId).map((r) => [r.session_id, r.status]));
   const booked = hydrateSessions(reservedEver.all(userId)).map((s) => ({ ...s, status: status.get(s.id) }));
@@ -95,7 +96,7 @@ export function recommendationsFor(userId, now) {
   const ratedSessions = hydrateSessions(rated.all(userId)).map((s) => ({ ...s, stars: starsById.get(s.id) }));
   const rows = pickedInterests.all(userId);
 
-  return rankRecommendations({
+  return { booked, ...rankRecommendations({
     sessions: hydrateSessions(everySession.all()),
     interests: {
       tracks: rows.filter((r) => r.kind === 'track').map((r) => r.slug),
@@ -106,5 +107,11 @@ export function recommendationsFor(userId, now) {
     booked,
     rated: ratedSessions,
     now,
-  });
+    limit,
+  }) };
+}
+
+export function recommendationsFor(userId, now) {
+  const { items, needsInterests } = rankedFor(userId, now);
+  return { items, needsInterests };
 }
