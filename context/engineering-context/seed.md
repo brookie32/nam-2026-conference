@@ -57,7 +57,7 @@ data at the end of the script, or draw from a separate generator.
    that overwrites the session's title, subtitle, abstract, takeaways, prerequisites and
    all its tags, so the hosts' sessions are their real subjects; format, room, track and
    seats stay as generated. Speakers left with nothing are then paired onto solo sessions.
-7. `USERS` — six attendees (below). Ticket tier `Speaker` sets `speaker_id` by name and
+7. `USERS` — six attendees (plus four welcome-only ones added after step 12's draws) (below). Ticket tier `Speaker` sets `speaker_id` by name and
    reuses the speaker portrait; the others get `attendee-00N.jpg`.
 8. Plans. Jonas's cross-town pairs are booked first (Day 1 Aurora 10:15 → Foundry 11:30;
    Day 4 Aurora 09:00 → Foundry 10:15). Then `PLAN_SHAPE[i]` gives each attendee days
@@ -89,6 +89,7 @@ pins it. Only dates change between machines; the PRNG output does not.
 | 4 | Sofia Almeida | VIP | 4 days, the biggest plan |
 | 5 | Marcus Whitfield | Standard | 2 days, the smallest plan |
 | 6 | Abraham Marín Pérez | Speaker | `speaker_id` 2, presents 2 sessions, 3 days |
+| 7–10 | Ines, Tomas, Priya, Callum | Standard | welcome-only (`welcomeA`..`welcomeD`): no plan, follows or interests; inserted after the last random draw so nothing else shifts; only `tests/welcome.spec.js` uses them |
 
 ## Invariants
 

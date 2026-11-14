@@ -23,11 +23,22 @@ export function askModel() {
 
 const conferenceDays = () => db.prepare('SELECT DISTINCT day FROM sessions ORDER BY day').all().map((r) => r.day);
 
-export const askSystemPrompt = () => `You are ORBIT, the assistant for the ORBIT '26 conference programme.
+const agendaLines = (agenda) => (agenda.length
+  ? agenda.map((s) => `- id ${s.id}: ${s.title}, ${s.startsAt}-${s.endsAt}, ${s.room.name} (${s.reservation})`).join('\n')
+  : 'Nothing booked that day.');
+
+export const askSystemPrompt = ({ day, time, agenda = [], days = conferenceDays() } = {}) => `You are ORBIT, the assistant for the ORBIT '26 conference programme.
 Answer only from the results of your tools; if they do not have it, say so. Never invent a session, speaker, room or time.
-Whenever you name a session, link it as [title](/sessions/<id>) using the id the tool returned. Do not link anything else.
-Keep answers short. You cannot book seats. Conference days: ${conferenceDays().map((d, i) => `Day ${i + 1} = ${d}`).join(', ')}.
-Times are 24-hour HH:MM; "afternoon" means from 12:00.`;
+Keep answers short. You cannot book seats. Conference days: ${days.map((d, i) => `Day ${i + 1} = ${d}`).join(', ')}.
+Times are 24-hour HH:MM; "afternoon" means from 12:00.
+Right now it is ${day ?? 'unknown'} at ${time ?? 'unknown'} on the conference clock. "Today" and "now" mean that.
+The person asking has these sessions on that day:
+${agendaLines(agenda)}
+Formatting rules:
+- To show sessions, call showSessions with their ids; the app draws the cards, so do not repeat their details in text.
+- To show how to get between two venues, call showTravel with the venue ids; the app draws the options.
+- Write prose in Markdown, and use a table for comparisons.
+- When a session is named in text, link it only as [title](/sessions/<id>) using the id a tool returned. Do not link anything else.`;
 
 const sessionBrief = (s) => ({
   id: s.id, title: s.title, day: s.day, startsAt: s.startsAt, endsAt: s.endsAt,
@@ -103,5 +114,15 @@ export const askTools = {
     description: 'The venues and the travel options between them.',
     inputSchema: z.object({}),
     execute: async () => venuesAndTravel(),
+  }),
+  showSessions: tool({
+    description: 'Show sessions to the person as cards. Pass the ids of sessions a tool returned.',
+    inputSchema: z.object({ ids: z.array(z.number()).min(1).max(12) }),
+    execute: async (input) => input,
+  }),
+  showTravel: tool({
+    description: 'Show the travel options between two venues as a card. Pass venue ids from venuesAndTravel.',
+    inputSchema: z.object({ fromVenueId: z.number(), toVenueId: z.number() }),
+    execute: async (input) => input,
   }),
 };

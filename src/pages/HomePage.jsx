@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useConference } from '../lib/store.jsx';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
@@ -6,6 +7,7 @@ import { SponsorMarquee } from '../components/SponsorMarquee.jsx';
 import { Reveal } from '../components/Reveal.jsx';
 import { UpNextCard } from '../components/UpNextCard.jsx';
 import { RateItPrompt } from '../components/RateItPrompt.jsx';
+import { WelcomePanel } from '../components/WelcomePanel.jsx';
 import { RecommendedStrip } from '../components/RecommendedStrip.jsx';
 import { HappeningNow } from '../components/HappeningNow.jsx';
 import { HeroMedia } from '../components/HeroMedia.jsx';
@@ -92,15 +94,17 @@ function QuickLinks() {
 export function HomePage() {
   const { conference } = useConference();
   useDocumentTitle("ORBIT '26");
+  const [picksVersion, setPicksVersion] = useState(0);
 
   return (
     // Sections hide themselves when empty; hide their Reveal wrapper too, or
     // each one leaves a blank gap in the stack.
     <div className="space-y-8 [&>:empty]:hidden">
       <HeroBar conference={conference} />
+      <Reveal><WelcomePanel onSaved={() => setPicksVersion((n) => n + 1)} /></Reveal>
       <Reveal><UpNextCard /></Reveal>
       <Reveal><RateItPrompt /></Reveal>
-      <Reveal><RecommendedStrip /></Reveal>
+      <Reveal><RecommendedStrip picksVersion={picksVersion} /></Reveal>
       <Reveal><HappeningNow /></Reveal>
       <QuickLinks />
       <SponsorMarquee />

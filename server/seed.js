@@ -898,6 +898,17 @@ SPONSOR_DATA.forEach(([name, tier, blurb, perk, hiring], i) => {
     `https://${slug(name)}.example.com`, ACCENTS[i % ACCENTS.length], initialsOf(name), perk, hiring);
 });
 
+/*
+  Welcome-only attendees (ids 7-10): no plan, no follows, no interests, so the first-visit welcome
+  on Home has attendees to show for. Inserted after every random draw, so nothing above shifts.
+*/
+['Ines Duarte', 'Tomas Bergstrom', 'Priya Raman', 'Callum Rhodes'].forEach((name, n) => {
+  const first = name.split(' ')[0].toLowerCase();
+  uStmt.run(name, `${first}@orbitconf.dev`, 'Software Engineer', 'Orbit Labs', initialsOf(name),
+    ACCENTS[(6 + n) * 2 % ACCENTS.length], null, 'New to ORBIT; has not picked anything yet.',
+    'they/them', 'London', 'Europe/London', 'Standard', '', null);
+});
+
 /* =========================== ANNOUNCEMENTS ========================= */
 const ANN = [
   ['Budget 30 minutes to get to the Foundry', 'The Foundry at Red Rock Yards is 6.2 miles from Aurora. The free shuttle takes about 27 minutes door to door and runs every 20 minutes; a rideshare is roughly 18 minutes. Back-to-back sessions across the two sites are not realistically possible.', 'warning', FOUNDRY.id, `${addDays(DAYS[0], -1)}T15:00:00Z`, 1],
