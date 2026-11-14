@@ -217,6 +217,7 @@ test.describe('Schedule grid', () => {
     // a single-track link still works
     await page.goto(`/schedule?day=${day}&track=${a.slug}&view=list`);
     await shown(await count(a.slug));
+    if (await filters.isVisible()) await filters.click();
     await expect(pill(a)).toHaveAttribute('aria-pressed', 'true');
   });
 });
