@@ -18,7 +18,7 @@ export const setAskModel = (model) => { injected = model; };
 export function askModel() {
   if (injected) return injected;
   if (!process.env.AI_GATEWAY_API_KEY) return null;
-  return gateway(process.env.ASK_ORBIT_MODEL || 'anthropic/claude-sonnet-4.5');
+  return gateway(process.env.ASK_ORBIT_MODEL || 'anthropic/claude-sonnet-5.5');
 }
 
 const conferenceDays = () => db.prepare('SELECT DISTINCT day FROM sessions ORDER BY day').all().map((r) => r.day);

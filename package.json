@@ -6,8 +6,8 @@
   "description": "ORBIT '26 — the conference companion app",
   "scripts": {
     "dev": "npm run db:seed && concurrently -n api,web -c magenta,cyan \"npm:dev:api\" \"npm:dev:web\"",
-    "start": "npm run db:seed && node server/index.js",
-    "dev:api": "node --watch server/index.js",
+    "start": "npm run db:seed && node --env-file-if-exists=.env server/index.js",
+    "dev:api": "node --env-file-if-exists=.env --watch server/index.js",
     "dev:web": "vite",
     "db:seed": "node server/seed.js",
     "db:reset": "rm -f data/orbit.db data/orbit.db-wal data/orbit.db-shm && npm run db:seed",
