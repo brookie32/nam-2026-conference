@@ -156,6 +156,69 @@ test.describe('Schedule grid', () => {
     await expect(cardFor(roomy.title).getByTestId('card-seats')).toHaveText(/^\d+ seats left$/);
     await expect(cardFor(full.title).getByTestId('card-seats')).toContainText('Full');
   });
+
+  test('the Track filter takes several tracks, drops one, and clears back to All', async ({ page, request }) => {
+    const days = await conferenceDays();
+    const day = days[0];
+    const { tracks } = await (await request.get(`${API}/bootstrap`)).json();
+    const [a, b] = tracks;
+    const count = async (slugs) =>
+      (await (await request.get(`${API}/sessions?day=${day}${slugs ? `&trackSlug=${slugs}` : ''}`)).json()).length;
+    const label = (t) => t.shortName ?? t.name;
+    const pill = (t) => page.getByRole('button', { name: label(t), exact: true });
+    const shown = async (n) => {
+      await waitForResults(page);
+      await expect(page.getByTestId('result-count')).toContainText(`${n} session`);
+    };
+    const total = await count('');
+    const both = await count(`${a.slug},${b.slug}`);
+    expect(both).toBeGreaterThan(await count(a.slug));
+    expect(both).toBeLessThan(total);
+
+    await visit(page, `/schedule?day=${day}&view=list`);
+    const filters = page.getByRole('button', { name: /^Filters/ });
+    if (await filters.isVisible()) await filters.click();
+
+    // adding two tracks shows both and nothing else
+    await pill(a).click();
+    await pill(b).click();
+    await shown(both);
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'true');
+    await expect(pill(b)).toHaveAttribute('aria-pressed', 'true');
+    await expect(page).toHaveURL(new RegExp(`track=${a.slug}(,|%2C)${b.slug}`));
+    await shotForPR(page, 'two tracks picked');
+
+    // it survives a reload
+    await page.reload();
+    if (await filters.isVisible()) await filters.click();
+    await shown(both);
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'true');
+    await expect(pill(b)).toHaveAttribute('aria-pressed', 'true');
+
+    // removing one narrows back to the other
+    await pill(a).click();
+    await shown(await count(b.slug));
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'false');
+    await expect(page).toHaveURL(new RegExp(`track=${b.slug}(&|$)`));
+
+    // removing the last returns to every track
+    await pill(b).click();
+    await shown(total);
+    await expect(page).not.toHaveURL(/track=/);
+
+    // All clears a multi-pick
+    await pill(a).click();
+    await pill(b).click();
+    await shown(both);
+    await page.getByRole('button', { name: 'All', exact: true }).first().click();
+    await shown(total);
+    await expect(page).not.toHaveURL(/track=/);
+
+    // a single-track link still works
+    await page.goto(`/schedule?day=${day}&track=${a.slug}&view=list`);
+    await shown(await count(a.slug));
+    await expect(pill(a)).toHaveAttribute('aria-pressed', 'true');
+  });
 });
 
 test.describe('Ended sessions', () => {
