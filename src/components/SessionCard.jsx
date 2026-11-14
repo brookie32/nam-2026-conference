@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { accent } from '../lib/accents.js';
 import { plural, timeRange } from '../lib/format.js';
 import { useConference } from '../lib/store.jsx';
-import { Avatar, Chip, SeatButton, Rating, cx } from './ui.jsx';
+import { Avatar, Chip, SeatButton, Rating, RatingBadge, cx } from './ui.jsx';
 import { Icon } from './Icon.jsx';
 import { GeneratedCover } from './GeneratedCover.jsx';
 import { LiveBadge } from './LiveBadge.jsx';
@@ -189,6 +189,7 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
           <span className={cx('flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide', a.text)}>
             <span className={cx('size-1.5 shrink-0 rounded-full', a.dot)} />
             <span className="truncate">{session.track.name}</span>
+            {session.ratingCount > 0 && <RatingBadge value={session.avgRating} count={session.ratingCount} />}
             {compact && offsite && (
               <span className="inline-flex shrink-0 items-center gap-1 normal-case text-muted">
                 <Icon name="car" className="size-3" /> {session.venue.shortName}
@@ -296,7 +297,7 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
             )
           )}
           {session.isRecorded && <Icon name="play" className="size-3 text-faint" />}
-          <Rating value={session.avgRating} count={session.ratingCount} />
+          {!session.ratingCount && <Rating value={session.avgRating} count={session.ratingCount} />}
         </div>
       </div>}
 

@@ -91,6 +91,7 @@ Dates are parsed at `T12:00:00Z` with `timeZone: 'UTC'` so they never shift.
 | `Button` | `variant (primary ghost subtle danger; default ghost), size (sm md lg), to` → `Link`, `href` → `a`, else `button`; `as` overrides |
 | `SeatButton` | `status (null confirmed waitlisted), onClick, size (sm md lg — lg is 44px), title, ended` — the one agenda action; stops propagation and sits at `z-10` above card link overlays; `ended` without a `status` disables it as "Session ended" |
 | `Rating` | `value, count, showValue` — "Not yet rated" when `count` is 0 |
+| `RatingBadge` | `value, count` — compact "★ 4.7 · 23" (`rating-badge`) in the grid card header; caller renders it only when `count > 0` |
 | `SectionHeader` | `eyebrow, title, description, action, className` — renders an `h2` |
 | `Spinner`, `Skeleton` | `className` |
 | `EmptyState` | `icon='search', title, description, action` |

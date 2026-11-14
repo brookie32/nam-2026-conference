@@ -452,3 +452,76 @@ test.describe('Jump to now', () => {
     await expect(page.getByTestId('jump-to-now')).toHaveCount(0);
   });
 });
+
+test.describe('Top rated sort and rating badges', () => {
+  test('Top rated orders by rating, survives a reload, badges only rated cards, default unchanged', async ({ page, request }) => {
+    const days = await conferenceDays();
+    const day = days[0];
+    const apiTop = await (await request.get(`${API}/sessions?day=${day}&sort=rating`)).json();
+    const titles = apiTop.map((s) => s.title);
+    const rated = apiTop.filter((s) => s.ratingCount > 0);
+    const unrated = apiTop.filter((s) => !s.ratingCount);
+    expect(rated.length).toBeGreaterThan(0);
+    expect(unrated.length).toBeGreaterThan(0);
+
+    const openRail = async () => {
+      const filters = page.getByRole('button', { name: /^Filters/ });
+      if (await filters.isVisible()) await filters.click();
+    };
+    const cardTitles = () => page.getByTestId('rated-list').getByTestId('session-card').locator('h3').allTextContents();
+
+    // Default: by time, no sort param, slots ascend, no rated-list.
+    await visit(page, `/schedule?view=list&day=${day}`, { at: await momentOn(0, '08:00') });
+    await waitForResults(page);
+    await openRail();
+    await expect(page.getByLabel('Sort')).toHaveValue('all');
+    await expect(page).not.toHaveURL(/sort=/);
+    await expect(page.getByTestId('rated-list')).toHaveCount(0);
+    const slotIds = await page.locator('[data-testid^="slot-"]').evaluateAll((els) => els.map((e) => e.dataset.testid));
+    expect(slotIds.length).toBeGreaterThan(1);
+    expect(slotIds).toEqual([...slotIds].sort());
+
+    // Choose Top rated.
+    await page.getByLabel('Sort').selectOption('rating');
+    await waitForResults(page);
+    await expect(page).toHaveURL(/sort=rating/);
+    await expect(page.getByTestId('rated-list')).toBeVisible();
+    await expect(page.locator('[data-testid^="slot-"]')).toHaveCount(0);
+    await expect(page.getByTestId('jump-to-now')).toHaveCount(0);
+    await expect(page.getByTestId('view-grid')).toBeDisabled();
+    expect(await cardTitles()).toEqual(titles);
+
+    // Badges: real average and count on rated cards, none on unrated.
+    const card = (s) => page.getByTestId('session-card').filter({ has: page.getByRole('heading', { name: s.title, exact: true }) });
+    for (const s of rated) {
+      await expect(card(s).getByTestId('rating-badge')).toContainText(`${s.avgRating.toFixed(1)} · ${s.ratingCount}`);
+    }
+    for (const s of unrated) {
+      await expect(card(s).getByTestId('rating-badge')).toHaveCount(0);
+    }
+    await expect(page.getByTestId('rated-list')).not.toContainText('0.0');
+
+    // Fit: the first rated badge is on screen within the viewport width.
+    const badge = card(rated[0]).getByTestId('rating-badge');
+    await badge.scrollIntoViewIfNeeded();
+    const vw = page.viewportSize().width;
+    const box = await badge.boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(vw);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(vw);
+    await shotForPR(page, 'top rated sort with rating badges');
+
+    // Reload keeps URL, select and order.
+    await page.reload();
+    await waitForResults(page);
+    await expect(page).toHaveURL(/sort=rating/);
+    await openRail();
+    await expect(page.getByLabel('Sort')).toHaveValue('rating');
+    expect(await cardTitles()).toEqual(titles);
+
+    // Back to By time removes the param.
+    await page.getByLabel('Sort').selectOption('all');
+    await waitForResults(page);
+    await expect(page).not.toHaveURL(/sort=/);
+    await expect(page.getByTestId('rated-list')).toHaveCount(0);
+  });
+});
