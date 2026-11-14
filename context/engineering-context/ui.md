@@ -22,6 +22,7 @@ files:
   - src/components/RouteChange.jsx
   - src/pages/HomePage.jsx
   - src/components/UpNextCard.jsx
+  - src/components/HappeningNow.jsx
   - src/pages/NotFoundPage.jsx
   - src/pages/PresentationPage.jsx
   - src/pages/ProductPresentationPage.jsx
