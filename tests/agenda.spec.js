@@ -174,3 +174,53 @@ test('a note between consecutive confirmed sessions at different venues: warning
   expect(seen.ok).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
+
+test('fill my gaps: a free stretch offers talks that fit, taking one closes it, and past gaps are gone', async ({ page, request }, testInfo) => {
+  const errors = failOnPageErrors(page);
+  const lane = await laneFor('agenda.gaps', testInfo);
+  const mins = (hhmm) => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3, 5));
+
+  // Two morning talks with at least 90 minutes between them, both with a topic so the ranking has a taste to go on.
+  const open = (await bookableFor(request, lane.user, lane.day))
+    .filter((s) => s.seatsLeft > 3 && s.endsAt <= '15:00' && s.tags.some((t) => t.kind === 'topic'));
+  const first = open.find((s) => s.startsAt >= lane.slot);
+  const second = open.find((s) => mins(s.startsAt) >= mins(first.endsAt) + 90);
+  expect(second, 'no pair with a hole between').toBeTruthy();
+
+  const booked = [first.id, second.id];
+  try {
+    for (const id of booked) await request.put(`${API}/users/${lane.user}/reservations/${id}`);
+
+    await visit(page, '/my-agenda', { as: lane.user, at: `${lane.day}T08:00` });
+    const day = page.locator(`[data-testid="agenda-day"][data-date="${lane.day}"]`);
+    const gap = day.getByTestId('agenda-gap').filter({ has: page.getByTestId('agenda-gap-item') }).first();
+    await expect(gap).toBeVisible();
+    const [start, end] = [await gap.getAttribute('data-start'), await gap.getAttribute('data-end')];
+    await expect(gap).toContainText(`You're free ${start}-${end}`);
+
+    const items = gap.getByTestId('agenda-gap-item');
+    expect(await items.count()).toBeLessThanOrEqual(3);
+    const ids = await items.evaluateAll((els) => els.map((e) => e.dataset.sessionId));
+    for (const id of ids) {
+      const s = await (await request.get(`${API}/sessions/${id}`)).json();
+      expect(s.startsAt >= start && s.endsAt <= end, `session ${id} fits ${start}-${end}`).toBe(true);
+    }
+    const box = await gap.boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width);
+    await shotForPR(page, 'My Agenda with a gap and suggestions');
+
+    // Taking a suggestion refetches: that stretch is gone (or is now a different, shorter one).
+    booked.push(Number(ids[0]));
+    await items.first().getByRole('button', { name: 'Add to my agenda' }).click();
+    await expect(day.locator(`[data-testid="agenda-gap"][data-start="${start}"][data-end="${end}"]`)).toHaveCount(0);
+
+    // Once a gap is over it is not shown: pin the clock at the end of the second talk's start.
+    await visit(page, '/my-agenda', { as: lane.user, at: `${lane.day}T${second.startsAt}` });
+    await expect(day.getByTestId('agenda-row').first()).toBeVisible();
+    const lateEnds = await day.getByTestId('agenda-gap').evaluateAll((els) => els.map((e) => e.dataset.end));
+    expect(lateEnds.filter((e) => e <= second.startsAt)).toEqual([]);
+  } finally {
+    for (const id of booked) await request.delete(`${API}/users/${lane.user}/reservations/${id}`);
+  }
+  expect(errors).toEqual([]);
+});

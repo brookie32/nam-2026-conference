@@ -48,7 +48,27 @@ function TravelNote({ note }) {
   );
 }
 
-function AgendaDay({ day, clock }) {
+/** A free stretch between two seats, with up to three talks that fit inside it. */
+function GapRow({ gap }) {
+  return (
+    <li data-testid="agenda-gap" data-start={gap.startsAt} data-end={gap.endsAt}
+      className="min-w-0 space-y-2 rounded-xl border border-dashed border-violet-400/40 p-3">
+      <p className="text-sm font-semibold text-violet-300">You're free {gap.startsAt}-{gap.endsAt}</p>
+      {gap.suggestions.length > 0 && (
+        <ul className="space-y-2">
+          {gap.suggestions.map(({ session, reasons }) => (
+            <li key={session.id} data-testid="agenda-gap-item" data-session-id={session.id} className="min-w-0">
+              <SessionCard session={session} variant="row" />
+              <p className="px-1 pt-1 text-xs text-muted">{reasons.join(' · ')}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </li>
+  );
+}
+
+function AgendaDay({ day, clock, gaps }) {
   const { travel } = useConference();
   const notes = travelNotes(day.sessions, travel);
   const clashing = new Set(day.conflicts.flatMap((c) => c.sessionIds));
@@ -95,6 +115,7 @@ function AgendaDay({ day, clock }) {
                 attendance={confirmed ? { ended: hasEnded(s, clock), checkedIn: s.checkedIn, myStars: s.myStars } : null} />
               {!confirmed && <WaitlistPosition session={s} />}
             </li>
+            {gaps.filter((g) => g.previousId === s.id).map((g) => <GapRow key={`${g.startsAt}-${g.endsAt}`} gap={g} />)}
             </Fragment>
           );
         })}
@@ -105,8 +126,13 @@ function AgendaDay({ day, clock }) {
 
 export function MyAgendaPage() {
   useDocumentTitle('My Agenda');
-  const { currentUserId, reservationFor, clock } = useConference();
+  const { currentUserId, reservationFor, clock, reservations } = useConference();
   const { data, loading, error, reload } = useFetch(() => api.getSchedule(currentUserId), [currentUserId]);
+  // Suggestions are a bonus: while they load, or if they fail, the agenda reads as before.
+  const gapsFetch = useFetch(
+    () => api.getGaps(currentUserId, { day: clock.day, time: clock.time }),
+    [currentUserId, clock.day, clock.time, reservations]);
+  const gaps = gapsFetch.data?.gaps ?? [];
   const held = useRef(false);
 
   const days = data ? orderDays(agendaDays(data.days, reservationFor), clock.day) : [];
@@ -126,7 +152,7 @@ export function MyAgendaPage() {
       </div>
     );
   } else {
-    body = <div className="space-y-8">{days.map((d) => <AgendaDay key={d.date} day={d} clock={clock} />)}</div>;
+    body = <div className="space-y-8">{days.map((d) => <AgendaDay key={d.date} day={d} clock={clock} gaps={gaps.filter((g) => g.day === d.date)} />)}</div>;
   }
 
   const hasConfirmed = !error && !loading && days.some((d) => d.sessions.some((s) => s.reservation === 'confirmed'));

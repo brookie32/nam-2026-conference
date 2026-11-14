@@ -152,6 +152,9 @@ export const LANES = {
   // Reads recommendations only; interests are set per pane on attendees no other lane gives interests
   // to (`other` is the second attendee, for the switch). Books nothing.
   'home.recs':        { desktop: { user: andy, other: sofia, day: 0, readOnly: true }, mobile: { user: jonas, other: abraham, day: 0, readOnly: true } },
+  // Books a morning pair with a hole between, then takes a suggested seat; releases all three. Shares
+  // marcus/kenji day 2 only with 'foryou.seat' (17:15, after the hole) and a check-in lane that books nothing.
+  'agenda.gaps':      { desktop: { user: marcus, day: 2, slot: '09:00' }, mobile: { user: kenji, day: 2, slot: '09:00' } },
   // The first-visit welcome on Home. Attendees 7-10 are seeded for it alone; the walk gives them
   // interests and a skip flag, so no other lane may use them.
   'home.welcome':     { desktop: { user: welcomeA, other: welcomeB, day: 0, readOnly: true }, mobile: { user: welcomeC, other: welcomeD, day: 0, readOnly: true } },

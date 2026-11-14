@@ -8,10 +8,13 @@ files:
   - src/pages/MyAgendaPage.jsx
   - src/lib/agenda.js
   - server/lib/recommend.js
+  - server/lib/gaps.js
   - src/pages/ForYouPage.jsx
 tests:
   - tests/for-you.spec.js
   - tests/unit/recommend.test.js
+  - tests/unit/gaps.test.js
+  - tests/api/gaps.test.js
   - tests/api/recommendations.test.js
   - tests/agenda.spec.js
   - tests/unit/agenda.test.js
@@ -110,6 +113,21 @@ sharing a topic or speaker adds / subtracts 1 with reason `you rated <title> <n>
 when nothing is picked and nothing is booked. The page refetches on attendee, clock and
 `reservations`; rows are `foryou-item` (`data-session-id`) + `foryou-reason`; the empty
 state is `foryou-empty`. Browser lane `foryou.seat` (marcus/kenji, day index 2, 17:15).
+
+**Fill my gaps.** `GET /api/users/:id/gaps?day=&time=` (day required, 404 unknown
+user) returns `{ gaps: [{ day, startsAt, endsAt, minutes, previousId, nextId,
+suggestions: [{ session, reasons }] }] }` from `server/lib/gaps.js`: `findGaps` (pure)
+takes *confirmed* seats only (waitlist places never bound a gap), per day from the
+clock's day on, and returns each stretch of 45+ minutes between two sessions (not
+before the first or after the last; a gap over by `time` is dropped). `suggestForGap`
+(pure) keeps `rankedFor(userId, now, Infinity)` items (the #46 ranking, so score > 0
+only) that start and end inside the gap (and not already started today), are open, and
+whose `assessTravel` from the session before is not `impossible`; same-venue as the
+session before or after first, then ranking order; 3 max. `MyAgendaPage` fetches
+`api.getGaps` (keyed on attendee, clock and `reservations`) and `AgendaDay` puts an
+`agenda-gap` row (`data-start`/`data-end`) after the row `previousId`, holding up to 3
+`agenda-gap-item`s (`data-session-id`, a row `SessionCard` + reasons). Browser lane
+`agenda.gaps`.
 
 **Speaker data.** `GET /api/users/:id` adds `speaker` and `speakingSessions`
 (`users.js:speakingSessions`, via `presenting` + plain `toSession`, so no
