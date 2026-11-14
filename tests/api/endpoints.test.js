@@ -62,6 +62,8 @@ function readable() {
     `/users/${ids.user}`,
     `/users/${ids.user}/schedule`,
     `/users/${ids.user}/today?day=${days[0]}&time=11:00`,
+    `/users/${ids.user}/interests`,
+    `/users/${ids.user}/recommendations?day=${days[0]}&time=11:00`,
     `/users/${ids.user}/attendance/${ids.session}`,
     `/users/${ids.user}/reservations/${ids.session}`,
   ];
@@ -158,6 +160,8 @@ describe('Every endpoint answers', () => {
       '/users/999999',
       '/users/999999/schedule',
       `/users/999999/today?day=${days[0]}&time=11:00`,
+      '/users/999999/interests',
+      `/users/999999/recommendations?day=${days[0]}&time=11:00`,
       `/users/${ids.user}/attendance/999999`,
       `/users/${ids.user}/reservations/999999`,
       '/sessions/999999.ics',
@@ -176,6 +180,7 @@ describe('Every endpoint answers', () => {
       () => api.put(`/users/999999/reservations/${ids.session}`, { day: days[0], time: '08:00' }),
       () => api.put(`/users/999999/checkins/${ids.session}`, { day: days[0], time: '08:00' }),
       () => api.put(`/users/999999/follows/${ids.speaker}`, {}),
+      () => api.put('/users/999999/interests', { tracks: [], tags: [] }),
       () => api.put(`/users/${ids.user}/follows/999999`, {}),
     ];
     for (const write of writes) {
@@ -201,6 +206,7 @@ describe('Every endpoint answers', () => {
       'GET sessions/', 'GET sessions/:id', 'GET sessions/:id.ics',
       'GET speakers/', 'GET speakers/:id',
       'GET users/', 'GET users/:id', 'GET users/:id/today', 'GET users/:id/schedule',
+      'GET users/:id/interests', 'PUT users/:id/interests', 'GET users/:id/recommendations',
       'GET users/:id/agenda.ics', 'GET users/:id/attendance/:sessionId',
       'GET users/:id/reservations/:sessionId',
       'PUT users/:id/reservations/:sessionId', 'PUT users/:id/checkins/:sessionId',

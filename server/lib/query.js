@@ -197,6 +197,12 @@ export const toUser = (row, extra = {}) => ({
   ...extra,
 });
 
+/** `user_interests` rows → the slugs an attendee picked, tracks and topics apart. */
+export const toInterests = (rows) => ({
+  tracks: rows.filter((r) => r.kind === 'track').map((r) => r.slug).sort(),
+  tags: rows.filter((r) => r.kind === 'tag').map((r) => r.slug).sort(),
+});
+
 export const toAnnouncement = (row) => ({
   id: row.id, title: row.title, body: row.body, kind: row.kind,
   venueId: row.venue_id, postedAt: row.posted_at, pinned: !!row.pinned,

@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { db } from '../db.js';
-import { SESSION_SELECT, toUser, toSpeaker, toSession } from '../lib/query.js';
+import { SESSION_SELECT, toUser, toSpeaker, toSession, toInterests } from '../lib/query.js';
 import { reserveSeat, releaseSeat, seatState } from '../lib/seats.js';
 import { attendanceState, checkIn, rateSession } from '../lib/attendance.js';
 import { todayFor, scheduleFor } from '../lib/agenda.js';
+import { recommendationsFor } from '../lib/recommend.js';
 import { agendaCalendar, baseUrlFor } from '../lib/ical.js';
 
 export const usersRouter = Router();
@@ -23,6 +24,16 @@ const myReservations = db.prepare('SELECT session_id, status FROM reservations W
 const myCheckIns = db.prepare('SELECT session_id FROM check_ins WHERE user_id = ?');
 const myRatings = db.prepare('SELECT session_id, stars FROM ratings WHERE user_id = ?');
 const follow = db.prepare('INSERT OR IGNORE INTO speaker_follows (user_id, speaker_id) VALUES (?, ?)');
+const myInterests = db.prepare('SELECT kind, slug FROM user_interests WHERE user_id = ?');
+const trackSlugs = new Set(db.prepare('SELECT slug FROM tracks').pluck().all());
+const tagSlugs = new Set(db.prepare('SELECT slug FROM tags').pluck().all());
+const clearInterests = db.prepare('DELETE FROM user_interests WHERE user_id = ?');
+const addInterest = db.prepare('INSERT OR IGNORE INTO user_interests (user_id, kind, slug) VALUES (?, ?, ?)');
+const saveInterests = db.transaction((userId, tracks, tags) => {
+  clearInterests.run(userId);
+  for (const slug of tracks) addInterest.run(userId, 'track', slug);
+  for (const slug of tags) addInterest.run(userId, 'tag', slug);
+});
 const unfollow = db.prepare('DELETE FROM speaker_follows WHERE user_id = ? AND speaker_id = ?');
 
 /** Sessions this user is presenting, if their account is linked to a speaker. */
@@ -68,6 +79,40 @@ usersRouter.get('/:id/today', (req, res) => {
   if (!day) return res.status(400).json({ error: 'day is required' });
 
   res.json(todayFor(Number(req.params.id), { day, time }));
+});
+
+/** The tracks and topics this attendee picked on /for-you. */
+usersRouter.get('/:id/interests', (req, res) => {
+  if (!userExists.get(req.params.id)) return res.status(404).json({ error: 'Attendee not found' });
+  res.json(toInterests(myInterests.all(req.params.id)));
+});
+
+/** PUT { tracks: [slug], tags: [slug] } replaces the whole set; an unknown slug is a 400. */
+usersRouter.put('/:id/interests', (req, res) => {
+  if (!userExists.get(req.params.id)) return res.status(404).json({ error: 'Attendee not found' });
+  const { tracks = [], tags = [] } = req.body ?? {};
+  const strings = (v) => Array.isArray(v) && v.every((x) => typeof x === 'string');
+  if (!strings(tracks) || !strings(tags)) {
+    return res.status(400).json({ error: 'tracks and tags must be lists of slugs' });
+  }
+  const unknown = [...tracks.filter((s) => !trackSlugs.has(s)), ...tags.filter((s) => !tagSlugs.has(s))];
+  if (unknown.length) return res.status(400).json({ error: `Unknown slug: ${unknown.join(', ')}` });
+
+  saveInterests(Number(req.params.id), tracks, tags);
+  res.json(toInterests(myInterests.all(req.params.id)));
+});
+
+/**
+ * GET /api/users/:id/recommendations?day=&time=
+ * Up to ten sessions they can still get into, best match first, each with the
+ * reasons it was picked. `needsInterests` is true when there is nothing to go on.
+ */
+usersRouter.get('/:id/recommendations', (req, res) => {
+  if (!userExists.get(req.params.id)) return res.status(404).json({ error: 'Attendee not found' });
+  const { day, time } = req.query;
+  if (!day) return res.status(400).json({ error: 'day is required' });
+
+  res.json(recommendationsFor(Number(req.params.id), { day, time: time ?? '00:00' }));
 });
 
 /**

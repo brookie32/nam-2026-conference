@@ -7,7 +7,12 @@ files:
   - server/lib/ical.js
   - src/pages/MyAgendaPage.jsx
   - src/lib/agenda.js
+  - server/lib/recommend.js
+  - src/pages/ForYouPage.jsx
 tests:
+  - tests/for-you.spec.js
+  - tests/unit/recommend.test.js
+  - tests/api/recommendations.test.js
   - tests/agenda.spec.js
   - tests/unit/agenda.test.js
   - tests/api/agenda.test.js
@@ -89,6 +94,20 @@ status). Candidates are `openInSlot`: same day and start, `is_keynote = 0`,
 `format != 'Social'`, `seats_taken < capacity`. Each gets `affinity` = number of
 its topic tags in that set; sort `affinity` desc then `avgRating` desc; top
 `SUGGESTION_COUNT` (3). `users.interests` is never read here.
+
+**For you** (`/for-you`, `ForYouPage`, nav "For you"). The attendee ticks tracks and
+topics (`foryou-interest`, `aria-pressed`), saved with `PUT /api/users/:id/interests`
+`{ tracks, tags }` (slugs; replaces the set, unknown slug 400, 404 unknown user) into
+`user_interests` — not the seeded text `users.interests`. `GET .../interests` returns the
+same shape. `GET /api/users/:id/recommendations?day=&time=` (day required) returns
+`{ items: [{ session, reasons }], needsInterests }` from `server/lib/recommend.js`:
+`rankRecommendations` (pure) drops ended, full, keynote, social, any session they hold
+(either status) and any clashing with a *confirmed* seat; score is 3 per picked
+track/topic/followed speaker, 1 for a topic tag shared with their agenda ("like your
+agenda"), 0 dropped; ties by `avgRating` then id; top 10. `needsInterests` (and no items)
+when nothing is picked and nothing is booked. The page refetches on attendee, clock and
+`reservations`; rows are `foryou-item` (`data-session-id`) + `foryou-reason`; the empty
+state is `foryou-empty`. Browser lane `foryou.seat` (marcus/kenji, day index 2, 17:15).
 
 **Speaker data.** `GET /api/users/:id` adds `speaker` and `speakingSessions`
 (`users.js:speakingSessions`, via `presenting` + plain `toSession`, so no
