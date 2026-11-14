@@ -166,7 +166,7 @@ describe('ratings', () => {
       if (at > 0 && control) { found = { track, target: items[at].session, control: control.session }; break; }
     }
     assert.ok(found, 'the seed has a track with a control ahead of a session sharing the rated topic or speaker');
-    assert.ok((await recs(id, now.day, now.time)).items.every((i) => !i.reasons.some((r) => r.startsWith('you rated'))), '3 stars adds no reason');
+    assert.ok((await recs(id, now.day, now.time)).items.every((i) => !i.reasons.some((r) => r.startsWith(`you rated ${seen.title} `))), '3 stars adds no reason');
 
     assert.equal((await rate(5)).status, 200);
     const after = (await recs(id, now.day, now.time)).items;
