@@ -81,7 +81,7 @@ export function ScheduleGrid({ sessions }) {
             const hasCells = rowCells.some(Boolean);
 
             return (
-              <div key={startsAt}>
+              <div key={startsAt} data-testid={`grid-slot-${startsAt}`} data-slot={startsAt} className="scroll-mt-20">
                 {banners.map((s) => {
                   const a = accent(s.track.color);
                   const seat = reservationFor(s.id);

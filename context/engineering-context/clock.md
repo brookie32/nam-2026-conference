@@ -39,6 +39,9 @@ CLAUDE.md § The conference clock.
   '2h 5m'), `isOpenAt(opens, closes, now)` (wraps past midnight),
   `hasEnded(session, clock)` (earlier day, or same day at/after `endsAt`; false
   without a clock — the client mirror of the API's `rejected: 'ended'` rule).
+  `jumpTarget(sessions, clock)` → `startsAt` of the slot in progress, else the next
+  to start, else `null` (also `null` when `sessions[0].day !== clock.day`) — feeds
+  the schedule's Jump to now button.
   `server/lib/query.js` has its own `toMinutes` for the server.
 
 **Getting the clock.** `src/lib/store.jsx` calls `useConferenceClock(data?.days)`

@@ -75,6 +75,11 @@ row (no weekday or count), tracks in one scrolling row (the Day and Track headin
 My agenda card is desktop-only (`starred-count` stays in the DOM, `hidden lg:block`);
 its link opens `/my-agenda`, which is a placeholder (agenda doc).
 `result-count` shows `Loading…` then `N sessions`.
+**Jump to now** (`jump-to-now`, in the day heading row after the *Today* chip) shows only when
+`filters.day === clock.day` and `jumpTarget(sessions, clock)` (clock doc) is non-null, so
+filters apply and it vanishes after the last slot. Click scrolls `[data-slot=<HH:MM>]` to the top
+once, never on load. List `slot-<HH:MM>` sections and grid `grid-slot-<HH:MM>` wrappers carry
+`data-slot` and `scroll-mt-20` (clears the sticky header).
 
 **`ScheduleGrid`** (`schedule-grid`, `role="table"`) — splits `sessions` into
 `gridSessions` and `bannerSessions` (`isKeynote || format === 'Social'`). Columns
