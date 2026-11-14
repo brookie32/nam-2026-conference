@@ -115,6 +115,12 @@ export function relativeToNow(hhmm, nowHHMM) {
   return delta > 0 ? `in ${label}` : `${label} ago`;
 }
 
+/** "in 12 min" / "started 8 min ago" / "starting now" — for a session that is up next or under way. */
+export function startPhrase(hhmm, nowHHMM) {
+  const rel = relativeToNow(hhmm, nowHHMM);
+  return toMinutes(hhmm) < toMinutes(nowHHMM) ? `started ${rel}` : rel;
+}
+
 /** Is a venue/vendor open at the current conference time? */
 export function isOpenAt(opensAt, closesAt, nowHHMM) {
   const now = toMinutes(nowHHMM);
