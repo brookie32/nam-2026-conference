@@ -141,6 +141,10 @@ export const LANES = {
   // Checks in for real, to a confirmed seat the seed leaves unattended: day 3 is after
   // the seeded attendance. Shares its attendee and day only with seat lanes (agenda: true).
   'home.up-next':     { desktop: { user: sofia, day: 3, agenda: false },  mobile: { user: jonas, day: 3, agenda: false } },
+  // Picks interests and books one 17:15 seat on day 2 (the third day): marcus and kenji hold nothing
+  // there, and the agenda: false check-in lanes on that day never book. Interests are per attendee, so
+  // the two panes use different attendees.
+  'foryou.seat':      { desktop: { user: marcus, day: 2, slot: '17:15' }, mobile: { user: kenji, day: 2, slot: '17:15' } },
   'attendance.rating-toast':  { desktop: { user: marcus, day: 0, slot: '09:00', agenda: false }, mobile: { user: abraham, day: 0, slot: '09:00', agenda: false } },
 };
 
