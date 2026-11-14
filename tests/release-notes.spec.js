@@ -20,7 +20,9 @@ test('9 opens the release notes anywhere, never while typing, and it fits a phon
 
   // Focus returns to what had it.
   await visit(page, '/schedule');
-  const search = page.getByRole('searchbox').first();
+  const filtersBtn = page.getByRole('button', { name: /^Filters/ });
+  if (await filtersBtn.isVisible()) await filtersBtn.click();
+  const search = page.getByTestId('search-input');
   await search.focus();
   await search.press('9');
   await expect(search).toHaveValue('9');
@@ -34,7 +36,7 @@ test('9 opens the release notes anywhere, never while typing, and it fits a phon
   await expect(skip).toBeFocused();
 
   // Ask ORBIT input.
-  await page.getByTestId('ask-launcher').click();
+  await page.getByRole('button', { name: 'Ask ORBIT' }).first().click();
   const ask = page.getByTestId('ask-input');
   await ask.fill('');
   await ask.press('9');

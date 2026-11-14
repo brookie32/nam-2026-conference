@@ -4,6 +4,7 @@ import { useConference } from '../lib/store.jsx';
 import { UserSwitcher } from './UserSwitcher.jsx';
 import { RouteChange } from './RouteChange.jsx';
 import { ConflictDialog } from './ConflictDialog.jsx';
+import { ReleaseNotesDialog } from './ReleaseNotesDialog.jsx';
 import { Icon } from './Icon.jsx';
 import { OfflineBanner } from './OfflineBanner.jsx';
 import { AskProvider } from '../lib/askChat.jsx';
@@ -82,9 +83,22 @@ function Shell() {
   const { ready, reservations, conflict, resolveConflict, conference } = useConference();
   const [menuOpen, setMenuOpen] = useState(false);
   const [swapping, setSwapping] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+  // 9 toggles the release notes, unless the person is typing or using a shortcut.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== '9' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target;
+      if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (document.querySelector('[data-testid="conflict-dialog"]')) return;
+      setNotesOpen((o) => !o);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -102,6 +116,7 @@ function Shell() {
         onCancel={() => resolveConflict(false)}
         busy={swapping}
       />
+      <ReleaseNotesDialog open={notesOpen} onClose={() => setNotesOpen(false)} />
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-violet-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold"
@@ -257,6 +272,7 @@ function Shell() {
 
           <div className="mt-10 flex flex-col gap-3 border-t border-hairline pt-6 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
             <p>Aurora Convention Center &amp; The Foundry at Red Rock Yards</p>
+            <p className="font-mono">Press 9 for release notes</p>
             <p className="font-mono">
               Sessions and speaker data are open —{' '}
               <a href="/api/bootstrap" className="underline underline-offset-2 transition-colors hover:text-ink">
