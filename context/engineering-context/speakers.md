@@ -122,7 +122,15 @@ grouped by `day` with `dayLabel` and rendered as `SessionCard` in a
 ## Gotchas
 
 - `SearchInput`, `Select` and `ChipGroup` are in `src/components/FilterBar.jsx`,
-  shared with the schedule — changing them affects both pages.
+  shared with the schedule — changing them affects both pages. They take
+  optional `inputClassName` / `selectClassName` / `chipClassName`, appended to
+  the control itself; the speakers page uses them for 44px phone targets.
+- Below `lg` the Sort select and the Show/Day/Track chips sit in a panel closed
+  behind a `Filters` / `Filters (n)` button (n counts Show, Day and Track, not
+  search or sort; local `filtersOpen` state, `aria-expanded`). Sort stays a
+  cell of the search grid (`hidden lg:block` toggled by `filtersOpen`) so it
+  keeps its place beside the search at `lg`; the chips wrapper owns their
+  spacing. A test that clicks a chip on a phone must open Filters first.
 - Follows are shared DB state: the Playwright follow test uses a different
   attendee per project and unfollows afterwards. Do the same.
 - `sort=rating` sorts by `speakers.avg_rating`, which is 0 for anyone not rated

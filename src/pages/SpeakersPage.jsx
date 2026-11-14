@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useConference, useFetch } from '../lib/store.jsx';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
@@ -81,6 +81,8 @@ export function SpeakersPage() {
   const day = params.get('day') ?? ALL;
   const view = params.get('show') ?? ALL; // all | following | keynotes | first-time
   const sort = params.get('sort') ?? 'featured';
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeCount = [view, day, track].filter((v) => v !== ALL).length;
 
   const set = (key, value) => {
     const next = new URLSearchParams(params);
@@ -126,20 +128,29 @@ export function SpeakersPage() {
       />
 
       <div className="card space-y-3.5 p-3 sm:p-4">
-        <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem]">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 lg:grid-cols-[minmax(0,1fr)_11rem]">
           <SearchInput value={q} onChange={(v) => set('q', v)} placeholder="Name, company, expertise…"
-            data-testid="speaker-search" />
-          <Select label="Sort" value={sort} onChange={(v) => set('sort', v)}
-            options={[
-              { value: 'featured', label: 'Most prominent' },
-              { value: 'sessions', label: 'Most sessions' },
-              { value: 'rating', label: 'Highest rated' },
-              { value: 'name', label: 'A–Z' },
-            ]} />
+            data-testid="speaker-search" inputClassName="h-11 lg:h-10" />
+          <Button className="min-h-11 lg:hidden" aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((o) => !o)}>
+            <Icon name="filter" className="size-3.5" />
+            Filters{activeCount ? ` (${activeCount})` : ''}
+          </Button>
+          <div className={cx(filtersOpen ? 'block' : 'hidden', 'col-span-2 lg:col-span-1 lg:block')}>
+            <Select label="Sort" value={sort} onChange={(v) => set('sort', v)} selectClassName="h-11 lg:h-10"
+              options={[
+                { value: 'featured', label: 'Most prominent' },
+                { value: 'sessions', label: 'Most sessions' },
+                { value: 'rating', label: 'Highest rated' },
+                { value: 'name', label: 'A–Z' },
+              ]} />
+          </div>
         </div>
 
+        <div className={cx(filtersOpen ? 'block' : 'hidden', 'space-y-3.5 lg:block')}>
         <ChipGroup
           label="Show"
+          chipClassName="min-h-11 lg:min-h-0"
           value={view}
           onChange={(v) => set('show', v)}
           options={[
@@ -161,6 +172,7 @@ export function SpeakersPage() {
 
         <ChipGroup
           label="Day"
+          chipClassName="min-h-11 lg:min-h-0"
           value={day}
           onChange={(v) => set('day', v)}
           options={[
@@ -175,6 +187,7 @@ export function SpeakersPage() {
 
         <ChipGroup
           label="Track"
+          chipClassName="min-h-11 lg:min-h-0"
           value={track}
           onChange={(v) => set('track', v)}
           options={[
@@ -191,6 +204,7 @@ export function SpeakersPage() {
             }),
           ]}
         />
+        </div>
       </div>
 
       {loading && (
