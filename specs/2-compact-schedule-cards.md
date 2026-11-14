@@ -22,6 +22,7 @@ Below `lg` (under 1024px), `/schedule`'s list view shows each session as a compa
 
 ## Decisions
 - "About a third of today's height" is measured inside one test as collapsed ÷ all-expanded (expanded is today's card), with a 0.4 ceiling rather than a stored pixel baseline.
+- A compact card still shows the cross-town venue name and, for a full session, the `Full · n waiting` badge: whether you can get in, and that it is across town, are not "the rest". (The gate caught two existing tests, venue filter and queue length, reading them on mobile; the spec had hidden them.)
 - Seats left, rating, format and level live only in the expanded card on phones, as the ticket lists them under "the rest"; the existing seats-left test expands the card first on mobile.
 - The whole-card stretched link stays in compact cards, so tapping anywhere but the two buttons opens the session, as today.
 - Cards start collapsed on every load; expanded state is not kept in the URL or storage.

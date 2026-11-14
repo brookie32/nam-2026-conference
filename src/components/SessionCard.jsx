@@ -184,14 +184,19 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
       )}
 
       {/* Header row */}
-      <div className={cx('flex items-start justify-between gap-3 px-4 pl-5', compact ? 'pt-2' : 'pt-3.5')}>
+      <div className={cx('flex items-start justify-between gap-3 px-4 pl-5', compact ? 'pt-1' : 'pt-3.5')}>
         <div className="min-w-0">
           <span className={cx('flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide', a.text)}>
             <span className={cx('size-1.5 shrink-0 rounded-full', a.dot)} />
             <span className="truncate">{session.track.name}</span>
+            {compact && offsite && (
+              <span className="inline-flex shrink-0 items-center gap-1 normal-case text-muted">
+                <Icon name="car" className="size-3" /> {session.venue.shortName}
+              </span>
+            )}
           </span>
           {compact && titleLink}
-          <span className={cx('flex items-center gap-1.5 font-mono text-[11px] text-muted', compact ? 'pb-1.5' : 'mt-0.5')}>
+          <span className={cx('flex items-center gap-1.5 font-mono text-[11px] text-muted', compact ? 'pb-0.5' : 'mt-0.5')}>
             {showDay && <span className="text-faint">{session.day.slice(5)}</span>}
             <Icon name="clock" className="size-3 shrink-0 text-faint" />
             <span className="shrink-0">{timeRange(session.startsAt, session.endsAt)}</span>
@@ -202,6 +207,13 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
               </>
             )}
           </span>
+          {/* What a phone must not hide: it is full. */}
+          {compact && !feature && session.capacity > 0 && isFull && (
+            <span data-testid="card-seats"
+              className="-mt-0.5 mb-1 inline-block rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-bold text-rose-200">
+              Full{waiting > 0 && ` · ${waiting} waiting`}
+            </span>
+          )}
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {isLive && <LiveBadge />}
