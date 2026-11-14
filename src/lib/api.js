@@ -63,6 +63,7 @@ export const saveInterests = (userId, body) =>
   api(`/users/${userId}/interests`, { method: 'PUT', body: JSON.stringify(body) });
 export const getRecommendations = (userId, { day, time }) =>
   api(`/users/${userId}/recommendations${qs({ day, time })}`);
+export const getGaps = (userId, { day, time }) => api(`/users/${userId}/gaps${qs({ day, time })}`);
 export const getToday = (userId, { day, time }) => api(`/users/${userId}/today${qs({ day, time })}`);
 
 /**
