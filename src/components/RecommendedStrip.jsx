@@ -47,7 +47,7 @@ export function RecommendedStrip() {
             <Link to={`/sessions/${session.id}`} className="block min-w-0 hover:text-violet-200">
               <span className="block truncate font-semibold">{session.title}</span>
               <span className="block truncate text-[13px] text-muted">
-                {fmtTime(session.startsAt.slice(11, 16))} · {session.room?.name}
+                {fmtTime(session.startsAt)} · {session.room?.name}
               </span>
               <span data-testid="recs-reason" className="block truncate text-xs font-medium text-violet-300">
                 {reasons.join(' · ')}

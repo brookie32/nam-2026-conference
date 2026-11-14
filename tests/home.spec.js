@@ -293,6 +293,11 @@ test('Recommended for you: the first 3 from /for-you, linked, an invitation when
   for (const m of mine) expect(m.href).toBe(`/sessions/${m.id}`);
   await expect(page.getByTestId('recs-see-all')).toHaveAttribute('href', '/for-you');
   await expect(page.getByTestId('recs-invite')).toHaveCount(0);
+  // Each item shows a real start time, e.g. "2:45 PM", never "12:undefined AM".
+  for (const text of await page.getByTestId('recs-item').allTextContents()) {
+    expect(text).not.toContain('undefined');
+    expect(text).toMatch(/\b\d{1,2}:\d{2}\s?[AP]M\b/);
+  }
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await shotForPR(page, 'Home with the Recommended for you strip');
 
