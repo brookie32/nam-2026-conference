@@ -33,6 +33,7 @@ tests:
   - tests/unit/presentation.test.js
   - tests/unit/deck-contrast.test.js
   - tests/smoke.spec.js
+  - tests/tabbar.spec.js
   - tests/home.spec.js
   - tests/switcher.spec.js
   - tests/presentation.spec.js
@@ -134,6 +135,11 @@ sticky `glass` header, `<main id="main">`, and the footer.
   `aria-label="Main"`) and the mobile menu (`aria-label="Mobile"`, toggled by
   the "Open menu"/"Close menu" button, closes on navigation, locks body scroll).
   `/my-agenda` shows `reservations.size` as a badge.
+- `TabBar` (below `lg`): `nav aria-label="Tabs"`, `fixed` to the bottom, four
+  tabs picked out of `NAV` (`TABS`: Home, Schedule, My Agenda, Venues), icon over
+  label, 4rem high plus `env(safe-area-inset-bottom)`, same My Agenda badge. The
+  shell `div` is padded by that height so the footer clears it, and `Toaster`
+  sits above it on phones (`bottom-[calc(5rem+…)]`, `lg:bottom-4`).
 - Footer: three `nav` columns (Programme, On site, Conference) built from an
   inline array of `[label, to]`, plus `conference.dates · conference.city` from
   bootstrap and a plain `<a href="/api/bootstrap">`.

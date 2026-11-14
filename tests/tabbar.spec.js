@@ -29,7 +29,7 @@ test('phone: every page has the four-tab bar, clear of the footer, with 44px tab
     const links = bar.getByRole('link');
     await expect(links, path).toHaveCount(4);
     for (const [i, tab] of TABS.entries()) {
-      await expect(links.nth(i), path).toHaveText(new RegExp(`^${tab.name}`));
+      await expect(links.nth(i), path).toHaveText(new RegExp(`^\\d*\\s*${tab.name}$`));
       const box = await links.nth(i).boundingBox();
       expect(box.height, `${path} ${tab.name} height`).toBeGreaterThanOrEqual(44);
     }
@@ -49,16 +49,16 @@ test('phone: every page has the four-tab bar, clear of the footer, with 44px tab
   const count = menuText.replace(/\D/g, '');
   expect(Number(count)).toBeGreaterThan(0);
   await expect(page.getByRole('navigation', { name: 'Tabs' }).getByRole('link', { name: /My Agenda/ }))
-    .toHaveText(new RegExp(`${count}$`));
+    .toHaveText(new RegExp(`^${count}\\s*My Agenda$`));
   await page.getByRole('button', { name: 'Close menu' }).click();
 
   // Tapping each tab navigates and marks only it current.
   const bar = page.getByRole('navigation', { name: 'Tabs' });
   for (const tab of TABS) {
-    await bar.getByRole('link', { name: new RegExp(`^${tab.name}`) }).click();
+    await bar.getByRole('link', { name: new RegExp(`^\\d*\\s*${tab.name}$`) }).click();
     await expect(page).toHaveURL(new RegExp(`${tab.path === '/' ? '/$' : tab.path + '$'}`));
     await expect(bar.locator('[aria-current="page"]')).toHaveCount(1);
-    await expect(bar.getByRole('link', { name: new RegExp(`^${tab.name}`) })).toHaveAttribute('aria-current', 'page');
+    await expect(bar.getByRole('link', { name: new RegExp(`^\\d*\\s*${tab.name}$`) })).toHaveAttribute('aria-current', 'page');
   }
   await shotForPR(page, 'Bottom tab bar on a phone');
 

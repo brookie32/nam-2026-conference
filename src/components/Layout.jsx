@@ -17,6 +17,44 @@ const NAV = [
   { to: '/expo', label: 'Expo', icon: 'grid' },
 ];
 
+const TABS = ['/', '/schedule', '/my-agenda', '/venues']
+  .map((to) => NAV.find((item) => item.to === to));
+
+function TabBar({ agendaCount }) {
+  return (
+    <nav
+      aria-label="Tabs"
+      className="glass fixed inset-x-0 bottom-0 z-40 border-t border-hairline lg:hidden"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+    >
+      <ul className="grid h-16 grid-cols-4">
+        {TABS.map((item) => (
+          <li key={item.to}>
+            <NavLink
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => cx(
+                'flex h-full min-h-11 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors',
+                isActive ? 'text-violet-200' : 'text-muted hover:text-ink',
+              )}
+            >
+              <span className="relative">
+                <Icon name={item.icon} className="size-5" />
+                {item.to === '/my-agenda' && agendaCount > 0 && (
+                  <span className="absolute -right-3 -top-1.5 rounded-full bg-emerald-500/20 px-1.5 text-[10px] font-bold leading-4 text-emerald-300">
+                    {agendaCount}
+                  </span>
+                )}
+              </span>
+              <span>{item.label}</span>
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  );
+}
+
 function Logo() {
   return (
     <NavLink to="/" className="flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-violet-400">
@@ -44,7 +82,7 @@ export function Layout() {
   }, [menuOpen]);
 
   return (
-    <div className="relative z-10 flex min-h-dvh flex-col">
+    <div className="relative z-10 flex min-h-dvh flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] lg:pb-0">
       <RouteChange />
       <ConflictDialog
         conflict={conflict}
@@ -216,6 +254,8 @@ export function Layout() {
           </div>
         </div>
       </footer>
+
+      <TabBar agendaCount={reservations.size} />
     </div>
   );
 }
