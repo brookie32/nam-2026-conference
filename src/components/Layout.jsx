@@ -220,6 +220,7 @@ function Shell() {
                   ['Schedule', '/schedule'],
                   ['Speakers', '/speakers'],
                   ['My agenda', '/my-agenda'],
+                  ['For you', '/for-you'],
                 ],
               },
               {
