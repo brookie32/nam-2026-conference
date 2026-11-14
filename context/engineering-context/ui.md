@@ -13,6 +13,8 @@ files:
   - src/components/Layout.jsx
   - src/components/Icon.jsx
   - src/components/RecommendedStrip.jsx
+  - src/components/WelcomePanel.jsx
+  - src/lib/roles.js
   - src/components/Toaster.jsx
   - src/components/Reveal.jsx
   - src/components/CountUp.jsx
@@ -38,6 +40,7 @@ tests:
   - tests/smoke.spec.js
   - tests/tabbar.spec.js
   - tests/home.spec.js
+  - tests/welcome.spec.js
   - tests/switcher.spec.js
   - tests/presentation.spec.js
 related: [architecture, speakers, venues, schedule, testing]
@@ -167,7 +170,7 @@ sticky `glass` header, `<main id="main">`, and the footer.
 
 **`HomePage`** (`/`) — one personal card, nothing live. It stacks `HeroBar` (`hero`: name, `conference.dates · city`, a
 `Day n · time` chip from `clock`, and `Browse today` → `/schedule?day=<clock.day>`
-plus `Speakers` buttons) → `UpNextCard` (`up-next`: the attendee's in-progress or next confirmed session from `api.getToday`, with room, venue and `startPhrase`; `up-next-checkin` shown only when the attendance endpoint says `canCheckIn`, then `up-next-checked-in`; `up-next-empty` links to `/schedule?day=<clock.day>`; renders `null` until first response) → `RateItPrompt` (`rate-it`, owned by the attendance doc; null when nothing to rate) → `RecommendedStrip` (`recs-strip`: first 3 of `api.getRecommendations` with the same call and deps as `/for-you`, as `recs-item` (`data-session-id`) links to `/sessions/:id` with `recs-reason`; `recs-see-all` → `/for-you`; `recs-invite` when `needsInterests`; null while loading, on error or when empty) → `HappeningNow`
+plus `Speakers` buttons) → `UpNextCard` (`up-next`: the attendee's in-progress or next confirmed session from `api.getToday`, with room, venue and `startPhrase`; `up-next-checkin` shown only when the attendance endpoint says `canCheckIn`, then `up-next-checked-in`; `up-next-empty` links to `/schedule?day=<clock.day>`; renders `null` until first response) → `WelcomePanel` (`welcome-panel`, first visit only: shown while `api.getInterests` has no tracks or tags and `localStorage['orbit:welcome-skipped:<id>']` is unset; `welcome-role` buttons (`aria-pressed`, `ROLES` in `src/lib/roles.js`) pre-select three topic `welcome-chip`s, `welcome-save` needs 3 picks and PUTs `{tracks, tags, role}` then bumps `picksVersion`, which `RecommendedStrip` takes as a dep; `welcome-skip`; proved in `tests/welcome.spec.js`) → `RateItPrompt` (`rate-it`, owned by the attendance doc; null when nothing to rate) → `RecommendedStrip` (`recs-strip`: first 3 of `api.getRecommendations` with the same call and deps as `/for-you`, as `recs-item` (`data-session-id`) links to `/sessions/:id` with `recs-reason`; `recs-see-all` → `/for-you`; `recs-invite` when `needsInterests`; null while loading, on error or when empty) → `HappeningNow`
 (`happening-now`, `src/components/HappeningNow.jsx`: `api.getLive(clock)` sessions as `happening-now-session` rows linking `/sessions/:id` with `LiveBadge`; `happening-now-empty` + schedule link, wording from `dayStartsAt`/`dayEndsAt`/`nextSlot` via `emptyMessage`; holds the announcement, `announcements`: the single newest posted one, pinned first, filtered by
 `postedAt <= clock`, so nothing appears before it was written) → `QuickLinks` (`quick-links`, a `nav` of the `LINKS`
 array: Schedule, Speakers, Venues, Food & drink, Expo) →
