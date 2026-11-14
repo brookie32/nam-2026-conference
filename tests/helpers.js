@@ -130,6 +130,9 @@ export const LANES = {
   // Check-ins and ratings only — no seat is booked, so agenda: false lets these
   // share a day with booking lanes (see lanes.test.js). The slot is the one
   // unattendedFor() picks its session from.
+  // Waitlists a sold-out session and books a clashing one in its slot, then removes both. andy day 1
+  // is held by no other lane; the two panes pin the slots day 1 sells out in (marcus and sofia have none).
+  'agenda.page':      { desktop: { user: andy, day: 1, slot: '10:15' },   mobile: { user: kenji, day: 1, slot: '14:45' } },
   'attendance.checkin-toast': { desktop: { user: kenji, day: 2, slot: '09:00', agenda: false },  mobile: { user: andy, day: 2, slot: '09:00', agenda: false } },
   // Rates for real, so it must land on day index 0 — `today` — per
   // smoke.spec.js's "no session in the future carries a rating".
