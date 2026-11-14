@@ -1,6 +1,6 @@
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { startApi, clearAgenda, overlaps } from './harness.js';
+import { startApi, clearAgenda, overlaps, attendedSession } from './harness.js';
 
 let api;
 let close;
@@ -144,5 +144,39 @@ describe('recommendations', () => {
     assert.ok(r.items.every((i) => i.reasons.length > 0));
     const firstTrackOnly = r.items.findIndex((i) => !i.reasons.includes(reason));
     assert.ok(r.items.slice(0, firstTrackOnly < 0 ? undefined : firstTrackOnly).every((i) => i.reasons.includes(reason)));
+  });
+});
+
+describe('ratings', () => {
+  test('a 5 star rating lifts a session sharing its topic, with the reason, at a pinned clock', async () => {
+    const { userId: id, session: seen } = await attendedSession(api);
+    await clearAgenda(api, id);
+    const now = { day: days[1], time: '08:00' };
+    const rate = (stars) => api.put(`/users/${id}/ratings/${seen.id}`, { stars, day: now.day, time: now.time });
+    const topics = (s) => s.tags.filter((t) => t.kind === 'topic').map((t) => t.slug);
+    const shares = (s) => topics(s).some((t) => topics(seen).includes(t)) || s.speakers.some((sp) => seen.speakers.some((x) => x.id === sp.id));
+
+    assert.equal((await rate(3)).status, 200);
+    let found;
+    for (const track of trackSlugs()) {
+      await pick(id, { tracks: [track], tags: [] });
+      const items = (await recs(id, now.day, now.time)).items.filter((i) => i.session.id !== seen.id);
+      const at = items.findIndex((i) => shares(i.session));
+      const control = items.slice(0, Math.max(at, 0)).find((i) => !shares(i.session));
+      if (at > 0 && control) { found = { track, target: items[at].session, control: control.session }; break; }
+    }
+    assert.ok(found, 'the seed has a track with a control ahead of a session sharing the rated topic or speaker');
+    assert.ok((await recs(id, now.day, now.time)).items.every((i) => !i.reasons.some((r) => r.startsWith('you rated'))), '3 stars adds no reason');
+
+    assert.equal((await rate(5)).status, 200);
+    const after = (await recs(id, now.day, now.time)).items;
+    const order = after.map((i) => i.session.id);
+    const hit = after.find((i) => i.session.id === found.target.id);
+    assert.ok(hit.reasons.includes(`you rated ${seen.title} 5★`), hit.reasons.join(' | '));
+    assert.ok(order.indexOf(found.target.id) < order.indexOf(found.control.id), 'the shared session now leads its tied control');
+
+    assert.equal((await rate(1)).status, 200);
+    const low = (await recs(id, now.day, now.time)).items.map((i) => i.session.id);
+    assert.ok(!low.includes(found.target.id) || low.indexOf(found.target.id) > low.indexOf(found.control.id), '1 star ranks it below');
   });
 });
