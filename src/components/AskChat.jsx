@@ -6,18 +6,31 @@ import { useAsk } from '../lib/askChat.jsx';
 import { Button, cx } from './ui.jsx';
 import { Icon } from './Icon.jsx';
 
-const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+// Inline Markdown, in order of precedence: a link, **bold**, `code`, *italic* / _italic_.
+const INLINE = /\[([^\]]+)\]\(([^)\s]+)\)|\*\*(.+?)\*\*|`([^`]+)`|\*([^*\s][^*]*?)\*|_([^_\s][^_]*?)_/g;
 const SESSION_HREF = /^\/sessions\/\d+$/;
 
-/** Markdown links in a reply: only `/sessions/:id` becomes a link, anything else is its text. */
-export function renderReply(text) {
+/**
+ * Inline Markdown in a reply line. Only a `/sessions/:id` link becomes a link — anything else is its
+ * text — and bold may wrap a link. Unmatched `*` or `_` stay as typed.
+ */
+export function renderReply(text, keyPrefix = 'r') {
   const parts = [];
   let last = 0;
-  for (const m of text.matchAll(LINK)) {
+  for (const m of text.matchAll(INLINE)) {
     if (m.index > last) parts.push(text.slice(last, m.index));
-    parts.push(SESSION_HREF.test(m[2])
-      ? <Link key={m.index} to={m[2]} className="font-medium text-violet-300 underline-offset-2 hover:underline">{m[1]}</Link>
-      : m[1]);
+    const key = `${keyPrefix}-${m.index}`;
+    if (m[1] !== undefined) {
+      parts.push(SESSION_HREF.test(m[2])
+        ? <Link key={key} to={m[2]} className="font-medium text-violet-300 underline-offset-2 hover:underline">{m[1]}</Link>
+        : m[1]);
+    } else if (m[3] !== undefined) {
+      parts.push(<strong key={key} className="font-semibold text-ink">{renderReply(m[3], key)}</strong>);
+    } else if (m[4] !== undefined) {
+      parts.push(<code key={key} className="rounded bg-overlay px-1 py-0.5 text-[0.85em]">{m[4]}</code>);
+    } else {
+      parts.push(<em key={key}>{m[5] ?? m[6]}</em>);
+    }
     last = m.index + m[0].length;
   }
   if (last < text.length) parts.push(text.slice(last));
@@ -25,7 +38,13 @@ export function renderReply(text) {
 }
 
 function ReplyBody({ blocks }) {
-  return blocks.map((b, i) => b.table ? (
+  return blocks.map((b, i) => b.list ? (
+    b.list.ordered
+      ? <ol key={i} className="my-1.5 list-decimal space-y-1 pl-5 marker:text-muted">{b.list.items.map((it, j) => <li key={j}>{renderReply(it)}</li>)}</ol>
+      : <ul key={i} className="my-1.5 list-disc space-y-1 pl-5 marker:text-muted">{b.list.items.map((it, j) => <li key={j}>{renderReply(it)}</li>)}</ul>
+  ) : b.heading ? (
+    <p key={i} className="mt-2 mb-1 font-semibold text-ink">{renderReply(b.heading)}</p>
+  ) : b.table ? (
     <div key={i} className="my-2 overflow-x-auto rounded-lg border border-hairline">
       <table className="w-full text-left text-sm">
         <thead className="bg-surface text-muted">
@@ -40,7 +59,7 @@ function ReplyBody({ blocks }) {
         </tbody>
       </table>
     </div>
-  ) : <span key={i} className="whitespace-pre-wrap">{renderReply(b.text)}</span>);
+  ) : <p key={i} className="my-1.5 whitespace-pre-wrap first:mt-0 last:mb-0">{renderReply(b.text)}</p>);
 }
 
 const SEARCHING = new Set(['tool-searchSessions', 'tool-findSpeakers', 'tool-venuesAndTravel']);
