@@ -2,7 +2,7 @@ import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
 // Safe to import outside a browser: nothing in this module touches `window`
 // until a hook is actually called.
-import { toMinutes, progressOf, relativeToNow, isOpenAt, hasEnded, jumpTarget } from '../../src/lib/clock.js';
+import { toMinutes, progressOf, relativeToNow, startPhrase, isOpenAt, hasEnded, jumpTarget } from '../../src/lib/clock.js';
 
 const session = { startsAt: '14:30', endsAt: '15:30' };
 
@@ -148,5 +148,14 @@ describe('Jump to now picks the slot to scroll to', () => {
   test('overlapping parallel sessions in one slot give that slot once', () => {
     const parallel = [...day1, { ...day1[2] }];
     assert.equal(jumpTarget(parallel, at('15:00')), '14:45');
+  });
+});
+
+describe('Up next says when a session starts', () => {
+  test('ahead of now it is a countdown, behind now it says it started', () => {
+    assert.equal(startPhrase('10:42', '10:30'), 'in 12 min');
+    assert.equal(startPhrase('10:22', '10:30'), 'started 8 min ago');
+    assert.equal(startPhrase('10:30', '10:30'), 'starting now');
+    assert.equal(startPhrase('12:35', '10:30'), 'in 2h 5m');
   });
 });
