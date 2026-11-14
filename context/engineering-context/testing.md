@@ -19,6 +19,8 @@ tests:
   - tests/unit/show.test.js
   - tests/unit/gitignore.test.js
   - tests/smoke.spec.js
+  - tests/offline-prod.spec.js
+  - tests/unit/offline-api.test.js
   - tests/api/static.test.js
 related: [seed, architecture, clock, seats, harness]
 ---
@@ -168,6 +170,13 @@ panel covers that corner: the sheet is too tall — cap it (`context/engineering
 § Dialogs), do not move the click. While iterating, run it on
 `--project=desktop --max-failures=1 --timeout=10000` (ship playbook §6), then
 once on mobile.
+
+## Production-build server
+
+`playwright.config.js` starts a second `webServer`: `npm run build && node server/index.js` on
+`PROD_PORT` (default `PORT + 100`, same database), health-checked on `/api/health`. Only
+`tests/offline-prod.spec.js` uses it (`test.use({ baseURL })`, desktop project) because the service
+worker is registered in production builds only.
 
 ## Gotchas
 

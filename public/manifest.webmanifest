@@ -1,0 +1,12 @@
+{
+  "name": "ORBIT '26 — The Applied AI Conference",
+  "short_name": "ORBIT '26",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0b14",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "/brand/orbit-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

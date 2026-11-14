@@ -5,6 +5,7 @@ import { UserSwitcher } from './UserSwitcher.jsx';
 import { RouteChange } from './RouteChange.jsx';
 import { ConflictDialog } from './ConflictDialog.jsx';
 import { Icon } from './Icon.jsx';
+import { OfflineBanner } from './OfflineBanner.jsx';
 import { cx } from './ui.jsx';
 
 const NAV = [
@@ -107,6 +108,8 @@ export function Layout() {
           Preview of <span className="font-semibold">{import.meta.env.VITE_PREVIEW_LABEL}</span> — only this branch's changes, with its own test data
         </p>
       )}
+
+      <OfflineBanner />
 
       <header className="glass sticky top-0 z-40 border-b border-hairline">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4 sm:px-6 lg:px-8">

@@ -81,7 +81,7 @@ export function AttendancePanel({ session }) {
       reload();
       toast({ message: successMessage, icon: 'check' });
     } catch (err) {
-      toast({ message: REJECTION_MESSAGES[err.payload?.rejected] ?? err.message, icon: 'alert' });
+      toast({ message: err.offline ? "You're offline" : (REJECTION_MESSAGES[err.payload?.rejected] ?? err.message), icon: 'alert' });
     } finally {
       setBusy(false);
     }
