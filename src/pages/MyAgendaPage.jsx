@@ -108,9 +108,16 @@ export function MyAgendaPage() {
     body = <div className="space-y-8">{days.map((d) => <AgendaDay key={d.date} day={d} clock={clock} />)}</div>;
   }
 
+  const hasConfirmed = !error && !loading && days.some((d) => d.sessions.some((s) => s.reservation === 'confirmed'));
+  const action = hasConfirmed && (
+    <Button href={api.agendaCalendarUrl(currentUserId)} data-testid="agenda-calendar">
+      <Icon name="calendar" className="size-3.5" /> Add my agenda to calendar
+    </Button>
+  );
+
   return (
     <div className="space-y-8">
-      <SectionHeader eyebrow="Your conference" title="My Agenda" />
+      <SectionHeader eyebrow="Your conference" title="My Agenda" action={action || undefined} />
       {body}
     </div>
   );
