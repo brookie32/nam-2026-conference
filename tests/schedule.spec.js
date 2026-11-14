@@ -398,3 +398,57 @@ test.describe('Compact cards on a phone', () => {
     await expect(page.getByTestId('card-seats').first()).toBeVisible();
   });
 });
+
+
+test.describe('Jump to now', () => {
+  const header = (page) => page.getByRole('banner');
+
+  // The slot must clear the sticky header, and on a phone the fixed tab bar.
+  async function expectInView(page, locator) {
+    await expect(locator).toBeInViewport();
+    const box = await locator.boundingBox();
+    const head = await header(page).boundingBox();
+    expect(box.y).toBeGreaterThanOrEqual(head.y + head.height - 1);
+    const tabs = page.locator('nav[aria-label]').last();
+    const bar = await tabs.boundingBox();
+    if (bar && bar.y > 300) expect(box.y).toBeLessThanOrEqual(bar.y);
+  }
+
+  const open = async (page, view, time, day = 0) => {
+    const days = await conferenceDays();
+    const at = await momentOn(0, time);
+    await page.goto(`/schedule?view=${view}&day=${days[day]}&at=${at}`);
+    await expect(header(page)).toBeVisible();
+    await waitForResults(page);
+  };
+
+  for (const view of ['list', 'grid']) {
+    const slotId = (t) => (view === 'list' ? `slot-${t}` : `grid-slot-${t}`);
+
+    test(`${view}: scrolls to the slot in progress, then to the next one between slots`, async ({ page }) => {
+      await open(page, view, '15:00');
+      await expect(page.getByTestId(slotId('14:45'))).not.toBeInViewport();
+      await page.getByTestId('jump-to-now').click();
+      await expectInView(page, page.getByTestId(slotId('14:45')));
+      await shotForPR(page, `jump to now ${view} in progress`);
+
+      await open(page, view, '15:40');
+      await page.getByTestId('jump-to-now').click();
+      await expectInView(page, page.getByTestId(slotId('16:00')));
+    });
+  }
+
+  test('is not shown on another day, nor after the last slot, and never scrolls on load', async ({ page }) => {
+    const days = await conferenceDays();
+    await open(page, 'list', '15:00', 0);
+    await expect(page.getByTestId('jump-to-now')).toHaveCount(1);
+    await expect(page.getByTestId('slot-14:45')).not.toBeInViewport();
+
+    await open(page, 'list', '15:00', 1);
+    await expect(page).toHaveURL(new RegExp(`day=${days[1]}`));
+    await expect(page.getByTestId('jump-to-now')).toHaveCount(0);
+
+    await open(page, 'list', '22:15');
+    await expect(page.getByTestId('jump-to-now')).toHaveCount(0);
+  });
+});
