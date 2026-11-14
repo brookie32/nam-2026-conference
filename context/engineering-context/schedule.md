@@ -88,6 +88,13 @@ only when `sessions[0].day === clock.day`, and seats from `seatsFor` over the pa
 A seat button on a session that `hasEnded` and is not held is disabled and named
 "Session ended" (banner) / "<title> has ended" (cell).
 
+**Compact cards on phones.** The list passes `collapsible={!wide}` (under 1024px) to
+`SessionCard`: grid variant only, collapsed until the `card-expand` button
+(`aria-expanded`, 44px) is tapped. Collapsed it shows track, title link, time, room and
+the seat button (`SeatButton size="lg"`, 44px), plus the cross-town venue name and a
+`Full · n waiting` badge (`card-seats`) when they apply; expanded it is the full card. State is
+local, not in the URL. Row cards, `ScheduleGrid` and desktop are unchanged.
+
 **`SessionCard`** — `variant="grid"` (default, an `<article>`) or `variant="row"`
 (a `<div>`, used by the session page's competing list). `showDay`
 prefixes `MM-DD`. Row only: an optional `attendance` prop (`{ ended, checkedIn, myStars }`,
