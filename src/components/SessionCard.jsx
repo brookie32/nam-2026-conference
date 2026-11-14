@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { accent } from '../lib/accents.js';
 import { plural, timeRange } from '../lib/format.js';
@@ -60,7 +61,9 @@ function AttendanceStatus({ session, attendance }) {
  * the body, then a footer strip. The bands are what let you scan a wall of
  * these without every card melting into the next.
  */
-export function SessionCard({ session, variant = 'grid', showDay = false, attendance = null }) {
+export function SessionCard({ session, variant = 'grid', showDay = false, attendance = null, collapsible = false }) {
+  // Phones only: a collapsible card shows track, time, room and title until expanded.
+  const [expanded, setExpanded] = useState(false);
   const { toggleSeat, clock, reservationFor, seatsFor } = useConference();
   const reservation = reservationFor(session.id);
   const onAgenda = Boolean(reservation);
@@ -134,6 +137,20 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
   // 1,200 seats, but the daily room set includes big halls, so most of the list
   // ended up "featured" — which is the same as nothing being featured.
   const feature = session.isKeynote;
+  const compact = collapsible && !expanded;
+
+  const titleLink = (
+    <Link to={`/sessions/${session.id}`}
+      className={cx('focus-visible:outline-none', collapsible && 'flex min-h-11 items-center', compact && '-my-0.5')}>
+      <span className="absolute inset-0" aria-hidden="true" />
+      <h3 className={cx(
+        'line-clamp-2 font-display leading-snug transition-colors group-hover:text-violet-200',
+        feature && !compact ? 'text-xl' : compact ? 'text-[0.9375rem]' : 'text-[1.0625rem]',
+      )}>
+        {session.title}
+      </h3>
+    </Link>
+  );
 
   return (
     <article
@@ -150,7 +167,7 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
       {/* Track rail — the primary way to tell cards apart at a glance. */}
       <span className={cx('absolute inset-y-0 left-0 z-10 w-1 bg-gradient-to-b', a.grad)} aria-hidden="true" />
 
-      {feature && (
+      {feature && !compact && (
         <div className="relative h-20 overflow-hidden border-b border-hairline">
           <GeneratedCover seed={session.title} accent={session.track.color}
             variant="orbit" className="size-full" />
@@ -167,35 +184,44 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
       )}
 
       {/* Header row */}
-      <div className="flex items-start justify-between gap-3 px-4 pl-5 pt-3.5">
+      <div className={cx('flex items-start justify-between gap-3 px-4 pl-5', compact ? 'pt-2' : 'pt-3.5')}>
         <div className="min-w-0">
           <span className={cx('flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide', a.text)}>
             <span className={cx('size-1.5 shrink-0 rounded-full', a.dot)} />
             <span className="truncate">{session.track.name}</span>
           </span>
-          <span className="mt-0.5 flex items-center gap-1.5 font-mono text-[11px] text-muted">
+          {compact && titleLink}
+          <span className={cx('flex items-center gap-1.5 font-mono text-[11px] text-muted', compact ? 'pb-1.5' : 'mt-0.5')}>
             {showDay && <span className="text-faint">{session.day.slice(5)}</span>}
             <Icon name="clock" className="size-3 shrink-0 text-faint" />
-            {timeRange(session.startsAt, session.endsAt)}
+            <span className="shrink-0">{timeRange(session.startsAt, session.endsAt)}</span>
+            {compact && (
+              <>
+                <Icon name="pin" className="ml-1 size-3 shrink-0 text-faint" />
+                <span className="truncate font-sans">{session.room.name}</span>
+              </>
+            )}
           </span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {isLive && <LiveBadge />}
-          <SeatButton status={reservation} ended={isDone} onClick={() => toggleSeat(session.id, session)} />
+          <SeatButton size={collapsible ? 'lg' : 'md'} status={reservation} ended={isDone}
+            onClick={() => toggleSeat(session.id, session)} />
+          {collapsible && (
+            <button type="button" data-testid="card-expand" aria-expanded={expanded}
+              aria-label={expanded ? 'Hide details' : 'Show details'}
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setExpanded((x) => !x); }}
+              className="relative z-10 grid size-11 shrink-0 place-items-center rounded-lg border border-hairline bg-overlay/60 text-faint hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-400">
+              <Icon name="chevronDown" className={cx('size-[18px] transition-transform', expanded && 'rotate-180')} />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Body */}
+      {/* Body — a compact card keeps its title in the header above. */}
+      {!compact && (
       <div className="flex flex-1 flex-col px-5 pb-4 pt-2.5">
-        <Link to={`/sessions/${session.id}`} className="focus-visible:outline-none">
-          <span className="absolute inset-0" aria-hidden="true" />
-          <h3 className={cx(
-            'line-clamp-2 font-display leading-snug transition-colors group-hover:text-violet-200',
-            feature ? 'text-xl' : 'text-[1.0625rem]',
-          )}>
-            {session.title}
-          </h3>
-        </Link>
+        {titleLink}
         {session.subtitle && (
           <p className="mt-1 line-clamp-1 text-[11px] italic text-faint">{session.subtitle}</p>
         )}
@@ -224,9 +250,10 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
           </div>
         )}
       </div>
+      )}
 
       {/* Footer */}
-      <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-2 border-t border-hairline px-4 py-2.5 pl-5 text-[11px] text-muted">
+      {!compact && <div className="mt-auto flex flex-wrap items-center gap-x-2.5 gap-y-2 border-t border-hairline px-4 py-2.5 pl-5 text-[11px] text-muted">
         <span className="inline-flex min-w-0 items-center gap-1">
           <Icon name="pin" className="size-3 shrink-0 text-faint" />
           <span className="truncate font-medium">{session.room.name}</span>
@@ -259,7 +286,7 @@ export function SessionCard({ session, variant = 'grid', showDay = false, attend
           {session.isRecorded && <Icon name="play" className="size-3 text-faint" />}
           <Rating value={session.avgRating} count={session.ratingCount} />
         </div>
-      </div>
+      </div>}
 
       {isLive && (
         <div className="h-1 w-full bg-overlay">

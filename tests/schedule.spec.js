@@ -324,7 +324,8 @@ test.describe('Compact cards on a phone', () => {
     const cards = page.getByTestId('session-card');
     const first = all.find((s) => s.abstract);
     const card = cards.filter({ hasText: first.title }).first();
-    await expect(card).toContainText(first.startsAt);
+    const [h, m] = first.startsAt.split(':').map(Number);   // cards print 12-hour times
+    await expect(card).toContainText(`${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`);
     await expect(card).toContainText(first.room.name);
     await expect(card).toContainText(first.track.name);
     await expect(card).not.toContainText(first.abstract.slice(0, 40));

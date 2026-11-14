@@ -299,15 +299,15 @@ export function SchedulePage() {
 
           {!loading && sessions.length > 0 && !showGrid && slots.map(([time, items]) => (
             <section key={time} className="card overflow-hidden" data-testid={`slot-${time}`}>
-              <header className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-3 sm:px-5">
+              <header className="flex items-center justify-between gap-3 border-b border-hairline px-4 py-2 sm:px-5 sm:py-3">
                 <div className="flex items-baseline gap-3">
                   <h2 className="font-mono text-base font-bold text-ink">{time}</h2>
                   <span className="text-xs text-faint">–&nbsp;{items[0]?.endsAt}</span>
                 </div>
                 <span className="text-[11px] font-medium text-faint">{plural(items.length, 'session')}</span>
               </header>
-              <div className="grid grid-flow-row-dense grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-3 p-3 sm:p-4">
-                {items.map((s) => <SessionCard key={s.id} session={s} />)}
+              <div className="grid grid-flow-row-dense grid-cols-[repeat(auto-fit,minmax(min(100%,20rem),1fr))] gap-2 p-2 sm:gap-3 sm:p-4">
+                {items.map((s) => <SessionCard key={s.id} session={s} collapsible={!wide} />)}
               </div>
             </section>
           ))}

@@ -117,7 +117,7 @@ export function Button({ variant = 'ghost', size = 'md', className, as, to, href
  * `status` is null | 'confirmed' | 'waitlisted'.
  */
 export function SeatButton({ status, onClick, size = 'md', className, title, ended = false }) {
-  const dims = size === 'sm' ? 'size-8' : 'size-10';
+  const dims = size === 'sm' ? 'size-8' : size === 'lg' ? 'size-11' : 'size-10';
   const on = Boolean(status);
   const waiting = status === 'waitlisted';
   // An ended session offers no seat; a seat already held can still be released.
