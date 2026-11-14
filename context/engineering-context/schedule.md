@@ -128,6 +128,8 @@ abstract/takeaways/prerequisites, speakers (link to `/speakers/:id`),
 (`competing` as row cards). Aside: `TravelNotice` (`travel-notice`, off-site only,
 non-Walk routes from `travel.js:routesBetween`), `SeatPanel`, `AttendancePanel`,
 room/amenities/step-free card, topic chips linking `/schedule?tag=`, `alsoInRoom`.
+The two-part grid is `grid-cols-[minmax(0,1fr)]` below `lg` (a bare `grid` sizes its one column to the widest
+unbreakable content and the page scrolls sideways on phones), `minmax(0,1fr)_20rem` at `lg`+.
 
 ## Invariants
 

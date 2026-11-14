@@ -150,7 +150,7 @@ export function SessionPage() {
         </div>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-8">
           {session.isRecorded && (
             <div
