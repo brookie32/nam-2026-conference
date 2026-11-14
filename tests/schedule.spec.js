@@ -152,6 +152,13 @@ test.describe('Schedule grid', () => {
     await visit(page, `/schedule?day=${lane.day}&view=list`, { as: lane.user });
     await waitForResults(page);
     const cardFor = (title) => page.locator('article').filter({ hasText: title }).first();
+    // On a phone the seat count lives in the expanded card.
+    const expand = async (title) => {
+      const toggle = cardFor(title).getByTestId('card-expand');
+      if (await toggle.count()) await toggle.click();
+    };
+    await expand(roomy.title);
+    await expand(full.title);
 
     await expect(cardFor(roomy.title).getByTestId('card-seats')).toHaveText(/^\d+ seats left$/);
     await expect(cardFor(full.title).getByTestId('card-seats')).toContainText('Full');
@@ -295,5 +302,98 @@ test.describe('Ended sessions', () => {
     await page.getByRole('button', { name: 'Product', exact: true }).click();
     await expect(page).toHaveURL(/track=/);
     for (const l of ['Venue', 'Level', 'Format', 'Topic']) await expect(page.getByLabel(l)).toBeVisible();
+  });
+});
+
+test.describe('Compact cards on a phone', () => {
+  const phone = async (page, lane) => {
+    await page.setViewportSize({ width: 375, height: 659 });
+    await visit(page, `/schedule?day=${lane.day}&view=list`, { as: lane.user, at: await momentOn(0, '07:00') });
+    await waitForResults(page);
+    await expect(page.getByTestId('session-card').first()).toBeVisible();
+  };
+
+  test('compact cards cut the day to about a third', async ({ page, request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'phone layout');
+    const lane = await laneFor('schedule.compact', testInfo);
+    const all = await (await request.get(`${API}/sessions?day=${lane.day}`)).json();
+    await phone(page, lane);
+
+    const height = () => page.evaluate(() => document.documentElement.scrollHeight);
+    const collapsed = await height();
+    const cards = page.getByTestId('session-card');
+    const first = all.find((s) => s.abstract);
+    const card = cards.filter({ hasText: first.title }).first();
+    await expect(card).toContainText(first.startsAt);
+    await expect(card).toContainText(first.room.name);
+    await expect(card).toContainText(first.track.name);
+    await expect(card).not.toContainText(first.abstract.slice(0, 40));
+    await shotForPR(page, 'Compact session cards on a phone');
+
+    const toggles = page.getByTestId('card-expand');
+    const n = await toggles.count();
+    expect(n).toBe(await cards.count());
+    for (let i = 0; i < n; i++) await toggles.nth(i).click();
+    const expanded = await height();
+    expect(collapsed).toBeLessThanOrEqual(0.4 * expanded);
+  });
+
+  test('a compact card expands, collapses, books and opens', async ({ page, request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'phone layout');
+    const lane = await laneFor('schedule.compact', testInfo);
+    const target = (await bookableFor(request, lane.user, lane.day)).find((s) => s.seatsLeft > 3 && s.abstract && s.speakers?.length);
+    expect(target, 'nothing this attendee can add').toBeTruthy();
+    await phone(page, lane);
+
+    const card = page.getByTestId('session-card').filter({ hasText: target.title }).first();
+    const toggle = card.getByTestId('card-expand');
+    const seat = card.getByRole('button', { name: /my agenda|waitlist/ });
+    const abstract = card.getByText(target.abstract, { exact: false });
+    const count = page.getByTestId('starred-count');
+    try {
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      await expect(abstract).toHaveCount(0);
+      const before = Number(await count.innerText());
+
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await expect(abstract).toBeVisible();
+      await expect(card.getByText(target.speakers[0].name)).toBeVisible();
+      await expect(card.getByTestId('card-seats')).toBeVisible();
+      await expect(card.getByText(target.level)).toBeVisible();
+
+      await seat.click();
+      await expect(count).toHaveText(String(before + 1));
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      await expect(abstract).toHaveCount(0);
+      await seat.click();
+      await expect(count).toHaveText(String(before));
+
+      await card.getByRole('link', { name: target.title }).click();
+      await expect(page).toHaveURL(new RegExp(`/sessions/${target.id}$`));
+    } finally {
+      await request.delete(`${API}/users/${lane.user}/reservations/${target.id}`);
+    }
+  });
+
+  test('compact card controls are at least 44px tall', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'phone layout');
+    const lane = await laneFor('schedule.compact', testInfo);
+    await phone(page, lane);
+    const card = page.getByTestId('session-card').first();
+    for (const el of [card.getByTestId('card-expand'), card.getByRole('button', { name: /my agenda|waitlist|ended/ }), card.getByRole('link').first()]) {
+      expect((await el.boundingBox()).height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+  test('on desktop the list keeps full cards', async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop layout');
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await visit(page, '/schedule?view=list', { at: await momentOn(0, '07:00') });
+    await waitForResults(page);
+    await expect(page.getByTestId('session-card').first()).toBeVisible();
+    await expect(page.getByTestId('card-expand')).toHaveCount(0);
+    await expect(page.getByTestId('card-seats').first()).toBeVisible();
   });
 });
