@@ -23,7 +23,7 @@ describe('Which session to offer a rating for', () => {
   });
   test('a running session is not offered, an earlier day is', () => {
     assert.deepEqual(rateCandidates(sessions, [1, 2], [], { day: '2026-05-01', time: '10:30' }).map((x) => x.id), [1]);
-    assert.deepEqual(rateCandidates(sessions, [1, 4], [], { day: '2026-05-02', time: '09:30' }).map((x) => x.id), [4, 1]);
+    assert.deepEqual(rateCandidates(sessions, [1, 4], [], { day: '2026-05-02', time: '10:30' }).map((x) => x.id), [4, 1]);
   });
   test('nothing checked in, or the clock before day one, gives nothing', () => {
     assert.deepEqual(rateCandidates(sessions, [], [], { day: '2026-05-02', time: '23:00' }), []);

@@ -6,6 +6,7 @@ import { relativeDate, time as fmtTime } from '../lib/format.js';
 import { SponsorMarquee } from '../components/SponsorMarquee.jsx';
 import { Reveal } from '../components/Reveal.jsx';
 import { UpNextCard } from '../components/UpNextCard.jsx';
+import { RateItPrompt } from '../components/RateItPrompt.jsx';
 import { HeroMedia } from '../components/HeroMedia.jsx';
 import { Button, Chip, cx } from '../components/ui.jsx';
 import { Icon } from '../components/Icon.jsx';
@@ -138,6 +139,7 @@ export function HomePage() {
     <div className="space-y-8 [&>:empty]:hidden">
       <HeroBar conference={conference} />
       <Reveal><UpNextCard /></Reveal>
+      <Reveal><RateItPrompt /></Reveal>
       <QuickLinks />
       <Reveal><LatestAnnouncement /></Reveal>
       <SponsorMarquee />

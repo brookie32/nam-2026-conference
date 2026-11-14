@@ -37,6 +37,7 @@ CLAUDE.md § The conference clock.
   `progressOf(session, now)` (0–1, clamped, on camelCase `startsAt`/`endsAt`),
   `relativeToNow(hhmm, now)` ('starting now' / 'in 12 min' / '8 min ago' /
   '2h 5m'), `startPhrase(hhmm, now)` (same, but 'started 8 min ago' for a past start), `isOpenAt(opens, closes, now)` (wraps past midnight),
+  `rateCandidates(sessions, checkIns, ratings, clock)` (checked-in, ended, unrated, latest first — Home's Rate it prompt),
   `hasEnded(session, clock)` (earlier day, or same day at/after `endsAt`; false
   without a clock — the client mirror of the API's `rejected: 'ended'` rule).
   `jumpTarget(sessions, clock)` → `startsAt` of the slot in progress, else the next

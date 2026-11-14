@@ -147,14 +147,12 @@ test.describe('Rate it prompt', () => {
     // Mid-session: the running session is not offered.
     const [h, m] = target.startsAt.split(':').map(Number);
     const mid = `${String(h).padStart(2, '0')}:${String(m + 5).padStart(2, '0')}`;
-    await page.evaluate((v) => localStorage.setItem('orbit:clockAt', v), `${day}T${mid}`);
-    await page.reload();
+    await page.goto(`/?at=${day}T${mid}`);
     await expect(page.getByTestId('quick-links')).toBeVisible();
     await expect(page.getByTestId('rate-it-session').filter({ hasText: target.title })).toHaveCount(0);
 
     // After it ends: the expected session is shown.
-    await page.evaluate((v) => localStorage.setItem('orbit:clockAt', v), `${day}T${target.endsAt}`);
-    await page.reload();
+    await page.goto(`/?at=${day}T${target.endsAt}`);
     const expected = await expectedAt(target.endsAt);
     await expect(page.getByTestId('rate-it-session')).toContainText(expected.title);
     await expect(prompt).toContainText(expected.room.name);

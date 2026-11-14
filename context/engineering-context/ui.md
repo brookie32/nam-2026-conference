@@ -165,7 +165,7 @@ sticky `glass` header, `<main id="main">`, and the footer.
 
 **`HomePage`** (`/`) — one personal card, nothing live. It stacks `HeroBar` (`hero`: name, `conference.dates · city`, a
 `Day n · time` chip from `clock`, and `Browse today` → `/schedule?day=<clock.day>`
-plus `Speakers` buttons) → `UpNextCard` (`up-next`: the attendee's in-progress or next confirmed session from `api.getToday`, with room, venue and `startPhrase`; `up-next-checkin` shown only when the attendance endpoint says `canCheckIn`, then `up-next-checked-in`; `up-next-empty` links to `/schedule?day=<clock.day>`; renders `null` until first response) → `QuickLinks` (`quick-links`, a `nav` of the `LINKS`
+plus `Speakers` buttons) → `UpNextCard` (`up-next`: the attendee's in-progress or next confirmed session from `api.getToday`, with room, venue and `startPhrase`; `up-next-checkin` shown only when the attendance endpoint says `canCheckIn`, then `up-next-checked-in`; `up-next-empty` links to `/schedule?day=<clock.day>`; renders `null` until first response) → `RateItPrompt` (`rate-it`, owned by the attendance doc; null when nothing to rate) → `QuickLinks` (`quick-links`, a `nav` of the `LINKS`
 array: Schedule, Speakers, Venues, Food & drink, Expo) → `LatestAnnouncement`
 (`announcements`: the single newest posted one, pinned first, filtered by
 `postedAt <= clock`, so nothing appears before it was written) →

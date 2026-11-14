@@ -24,7 +24,7 @@ const REJECTION_MESSAGES = {
   'too-early': 'You can rate this once the session ends',
 };
 
-function Stars({ value, onChange, readOnly }) {
+export function Stars({ value, onChange, readOnly }) {
   const [hover, setHover] = useState(0);
   const shown = hover || value;
   return (
