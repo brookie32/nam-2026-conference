@@ -61,8 +61,7 @@ seats is `travel.js:assessTravel` (venues doc); export is `api.agendaCalendarUrl
 
 **`GET /api/users/:id/today?day=&time=`** → `users.js` checks the user exists (404)
 and `day` is present (400), then `agenda.js:todayFor(userId, { day, time })`.
-`time` defaults to `'00:00'`. Client: `api.getToday(userId, clock)` — no UI
-calls it yet. Key a fetch on `[currentUser.id, clock.day, clock.time]` and it
+`time` defaults to `'00:00'`. Client: `api.getToday(userId, clock)` — Home's `UpNextCard` calls it (`current ?? next`). Key a fetch on `[currentUser.id, clock.day, clock.time]` and it
 refetches on every clock tick.
 
 Payload, field by field (sessions are `hydrateSessions` output — full
