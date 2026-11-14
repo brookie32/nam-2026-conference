@@ -130,19 +130,19 @@ describe('recommendations', () => {
     assert.ok(!after.includes(first.id));
   });
 
-  test('a followed speaker brings their session in, with that as the reason', async () => {
+  test('a followed speaker is a reason, and ranks a session above those matching on track alone', async () => {
     const id = 3;
     await clearAgenda(api, id);
     const target = sessions.find((s) => ordinary(s) && s.seatsTaken < s.capacity && s.day > days[0] && s.speakers.length);
     const speaker = target.speakers[0];
-    const other = trackSlugs().find((t) => t !== target.track.slug);
-    await pick(id, { tracks: [other], tags: [] });
+    await pick(id, { tracks: [target.track.slug], tags: [] });
     await api.put(`/users/${id}/follows/${speaker.id}`, {});
 
     const r = await recs(id, days[0], '07:00');
-    const item = r.items.find((i) => i.session.id === target.id);
-    assert.ok(item, 'the followed speaker session is listed although its track was not picked');
-    assert.ok(item.reasons.includes(`you follow ${speaker.name}`));
+    const reason = `you follow ${speaker.name}`;
+    assert.ok(r.items[0].reasons.includes(reason), 'the first item is by a followed speaker');
     assert.ok(r.items.every((i) => i.reasons.length > 0));
+    const firstTrackOnly = r.items.findIndex((i) => !i.reasons.includes(reason));
+    assert.ok(r.items.slice(0, firstTrackOnly < 0 ? undefined : firstTrackOnly).every((i) => i.reasons.includes(reason)));
   });
 });

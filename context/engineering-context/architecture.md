@@ -72,7 +72,7 @@ sets the `.ics` host.
 EXISTS` throughout); `migrate()` execs it, `dropAll()` drops every table child-first.
 Tables: `users`, `venues`, `venue_travel`, `tracks`, `tags`, `rooms`, `speakers`,
 `sessions`, `session_tags`, `session_speakers`, `reservations`, `check_ins`,
-`speaker_follows`, `ratings`, `vendors`, `sponsors`, `announcements`. Column-level detail:
+`speaker_follows`, `user_interests`, `ratings`, `vendors`, `sponsors`, `announcements`. Column-level detail:
 `context/engineering-context/data-model.md`.
 
 **Mappers** (`server/lib/query.js`). `SESSION_SELECT` joins session → track → room → venue
@@ -97,7 +97,7 @@ batched `IN (…)` queries — use it for lists; bare `toSession` has no speaker
 
 **Client shell.** `src/main.jsx`: `StrictMode → BrowserRouter → Toaster → ConferenceProvider
 → App`. `src/App.jsx` shows `ErrorState` if bootstrap failed, `Spinner` until `ready`, then
-the routes. `/opening-presentation`, `/product-presentation` and `/engineering-presentation` sit outside it, full screen; the rest are inside `<Layout>`: `/` Home, `/schedule`, `/sessions/:id`, `/speakers`,
+the routes. `/opening-presentation`, `/product-presentation` and `/engineering-presentation` sit outside it, full screen; the rest are inside `<Layout>`: `/` Home, `/schedule`, `/for-you`, `/sessions/:id`, `/speakers`,
 `/speakers/:id`, `/my-agenda`, `/my-plan` (→ `/my-agenda`), `/venues`, `/food`, `/expo`, `/ask`,
 `/code-of-conduct`, `/accessibility`, `*` NotFound.
 

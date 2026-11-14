@@ -51,9 +51,10 @@ describe('which sessions can be recommended', () => {
   });
 
   test('a session already booked is left out, seat or waitlist place', () => {
-    const r = rank([control, session(2, { track: agents }), session(3, { track: agents })], {
-      booked: [{ id: 2, day: '2026-05-04', startsAt: '14:00', endsAt: '14:45', status: 'confirmed' },
-        { id: 3, day: '2026-05-04', startsAt: '15:00', endsAt: '15:45', status: 'waitlisted' }],
+    const r = rank([control, session(2, { track: agents, startsAt: '16:00', endsAt: '16:45' }),
+      session(3, { track: agents, startsAt: '17:00', endsAt: '17:45' })], {
+      booked: [{ id: 2, day: '2026-05-04', startsAt: '16:00', endsAt: '16:45', status: 'confirmed' },
+        { id: 3, day: '2026-05-04', startsAt: '17:00', endsAt: '17:45', status: 'waitlisted' }],
     });
     assert.deepEqual(ids(r), [1]);
   });
