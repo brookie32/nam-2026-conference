@@ -141,6 +141,8 @@ export const LANES = {
   // Checks in for real, to a confirmed seat the seed leaves unattended: day 3 is after
   // the seeded attendance. Shares its attendee and day only with seat lanes (agenda: true).
   'home.up-next':     { desktop: { user: sofia, day: 3, agenda: false },  mobile: { user: jonas, day: 3, agenda: false } },
+  // Checks in and rates for real on day 0, so it clears its own unrated check-ins; books nothing.
+  'home.rate-it':     { desktop: { user: kenji, day: 0, slot: '13:30', agenda: false }, mobile: { user: sofia, day: 0, slot: '13:30', agenda: false } },
   'attendance.rating-toast':  { desktop: { user: marcus, day: 0, slot: '09:00', agenda: false }, mobile: { user: abraham, day: 0, slot: '09:00', agenda: false } },
 };
 
