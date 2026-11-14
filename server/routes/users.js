@@ -29,8 +29,10 @@ const trackSlugs = new Set(db.prepare('SELECT slug FROM tracks').pluck().all());
 const tagSlugs = new Set(db.prepare('SELECT slug FROM tags').pluck().all());
 const clearInterests = db.prepare('DELETE FROM user_interests WHERE user_id = ?');
 const addInterest = db.prepare('INSERT OR IGNORE INTO user_interests (user_id, kind, slug) VALUES (?, ?, ?)');
-const saveInterests = db.transaction((userId, tracks, tags) => {
+const ROLES = new Set(['vip', 'short-stay', 'speaking']);
+const saveInterests = db.transaction((userId, tracks, tags, role) => {
   clearInterests.run(userId);
+  if (role) addInterest.run(userId, 'role', role);
   for (const slug of tracks) addInterest.run(userId, 'track', slug);
   for (const slug of tags) addInterest.run(userId, 'tag', slug);
 });
@@ -87,18 +89,22 @@ usersRouter.get('/:id/interests', (req, res) => {
   res.json(toInterests(myInterests.all(req.params.id)));
 });
 
-/** PUT { tracks: [slug], tags: [slug] } replaces the whole set; an unknown slug is a 400. */
+/**
+ * PUT { tracks: [slug], tags: [slug], role?: 'vip'|'short-stay'|'speaking' } replaces the whole set
+ * (an omitted role clears it); an unknown slug or role is a 400.
+ */
 usersRouter.put('/:id/interests', (req, res) => {
   if (!userExists.get(req.params.id)) return res.status(404).json({ error: 'Attendee not found' });
-  const { tracks = [], tags = [] } = req.body ?? {};
+  const { tracks = [], tags = [], role = null } = req.body ?? {};
   const strings = (v) => Array.isArray(v) && v.every((x) => typeof x === 'string');
   if (!strings(tracks) || !strings(tags)) {
     return res.status(400).json({ error: 'tracks and tags must be lists of slugs' });
   }
+  if (role !== null && !ROLES.has(role)) return res.status(400).json({ error: `Unknown role: ${role}` });
   const unknown = [...tracks.filter((s) => !trackSlugs.has(s)), ...tags.filter((s) => !tagSlugs.has(s))];
   if (unknown.length) return res.status(400).json({ error: `Unknown slug: ${unknown.join(', ')}` });
 
-  saveInterests(Number(req.params.id), tracks, tags);
+  saveInterests(Number(req.params.id), tracks, tags, role);
   res.json(toInterests(myInterests.all(req.params.id)));
 });
 
