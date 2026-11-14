@@ -81,6 +81,18 @@ export function hasEnded(session, clock) {
 }
 
 /**
+ * Sessions worth asking "how was it?" about: checked in to, ended by the clock,
+ * not yet rated. Latest first — by day, end time, then id.
+ */
+export function rateCandidates(sessions, checkIns, ratings, clock) {
+  const been = new Set(checkIns ?? []);
+  const rated = new Set((ratings ?? []).map((r) => r.sessionId));
+  return (sessions ?? [])
+    .filter((s) => been.has(s.id) && !rated.has(s.id) && hasEnded(s, clock))
+    .sort((a, b) => b.day.localeCompare(a.day) || b.endsAt.localeCompare(a.endsAt) || b.id - a.id);
+}
+
+/**
  * The slot "Jump to now" scrolls to: the `startsAt` of the slot in progress,
  * else the next to start, else null. Null too when the sessions are not on the
  * clock's day. Takes the sessions on screen, so filters apply.

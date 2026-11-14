@@ -5,6 +5,7 @@ import { time as fmtTime } from '../lib/format.js';
 import { SponsorMarquee } from '../components/SponsorMarquee.jsx';
 import { Reveal } from '../components/Reveal.jsx';
 import { UpNextCard } from '../components/UpNextCard.jsx';
+import { RateItPrompt } from '../components/RateItPrompt.jsx';
 import { HappeningNow } from '../components/HappeningNow.jsx';
 import { HeroMedia } from '../components/HeroMedia.jsx';
 import { Button, Chip } from '../components/ui.jsx';
@@ -97,6 +98,7 @@ export function HomePage() {
     <div className="space-y-8 [&>:empty]:hidden">
       <HeroBar conference={conference} />
       <Reveal><UpNextCard /></Reveal>
+      <Reveal><RateItPrompt /></Reveal>
       <Reveal><HappeningNow /></Reveal>
       <QuickLinks />
       <SponsorMarquee />

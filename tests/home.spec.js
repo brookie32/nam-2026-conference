@@ -182,3 +182,76 @@ test.describe('Up next for you', () => {
     await expect(page.getByTestId('up-next-checkin')).toHaveCount(0);
   });
 });
+
+test.describe('Rate it prompt', () => {
+  test('offers the latest ended, checked-in, unrated session; rating it saves and moves on; nothing to rate shows nothing', async ({ page, request }, testInfo) => {
+    const { user, day, slot } = await laneFor('home.rate-it', testInfo);
+    const all = await (await request.get(`${API}/sessions?day=${day}`)).json();
+    const me0 = await (await request.get(`${API}/users/${user}`)).json();
+    const been = new Set(me0.checkIns ?? []);
+    const target = all
+      .filter((s) => !s.isKeynote && s.format !== 'Social' && !been.has(s.id) && s.startsAt === slot)
+      .sort((a, b) => a.id - b.id)[0];
+    expect(target, 'a session at the lane slot to attend').toBeTruthy();
+    await request.put(`${API}/users/${user}/checkins/${target.id}`, { data: { day, time: target.startsAt } });
+
+    const prompt = page.getByTestId('rate-it');
+    const state = async () => {
+      const me = await (await request.get(`${API}/users/${user}`)).json();
+      const sessions = await (await request.get(`${API}/sessions`)).json();
+      return { me, sessions };
+    };
+    const expectedAt = async (time) => {
+      const { me, sessions } = await state();
+      const rated = new Set(me.ratings.map((r) => r.sessionId));
+      return sessions
+        .filter((s) => me.checkIns.includes(s.id) && !rated.has(s.id)
+          && (s.day < day || (s.day === day && s.endsAt <= time)))
+        .sort((a, b) => (b.day.localeCompare(a.day)) || b.endsAt.localeCompare(a.endsAt) || b.id - a.id)[0];
+    };
+
+    // Before anything has ended on day 0: no prompt.
+    await visit(page, '/', { as: user, at: `${day}T08:00` });
+    await expect(page.getByTestId('quick-links')).toBeVisible();
+    await expect(prompt).toHaveCount(0);
+
+    // Mid-session: the running session is not offered.
+    const [h, m] = target.startsAt.split(':').map(Number);
+    const mid = `${String(h).padStart(2, '0')}:${String(m + 5).padStart(2, '0')}`;
+    await page.goto(`/?at=${day}T${mid}`);
+    await expect(page.getByTestId('quick-links')).toBeVisible();
+    await expect(page.getByTestId('rate-it-session').filter({ hasText: target.title })).toHaveCount(0);
+
+    // After it ends: the expected session is shown.
+    await page.goto(`/?at=${day}T${target.endsAt}`);
+    const expected = await expectedAt(target.endsAt);
+    await expect(page.getByTestId('rate-it-session')).toContainText(expected.title);
+    await expect(prompt).toContainText(expected.room.name);
+
+    // It fits the phone.
+    const fit = await page.evaluate(() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth }));
+    expect(fit.sw).toBeLessThanOrEqual(fit.cw);
+    for (const n of [1, 5]) {
+      const box = await prompt.getByRole('radio', { name: `${n} star${n > 1 ? 's' : ''}`, exact: true }).boundingBox();
+      expect(box.x).toBeGreaterThanOrEqual(0);
+      expect(box.x + box.width).toBeLessThanOrEqual(fit.cw);
+    }
+    await shotForPR(page, 'Rate it prompt on Home');
+
+    // Rate it: saved, toasted, and the prompt moves on.
+    await prompt.getByRole('radio', { name: '4 stars', exact: true }).click();
+    await expect(page.getByTestId('toaster')).toContainText('Rating saved');
+    const after = (await state()).me.ratings.find((r) => r.sessionId === expected.id);
+    expect(after?.stars).toBe(4);
+    await expect(page.getByTestId('rate-it-session').filter({ hasText: expected.title })).toHaveCount(0);
+
+    // Clear whatever else is unrated: the prompt goes away.
+    for (let i = 0; i < 20 && await prompt.count(); i++) {
+      const next = await expectedAt(target.endsAt);
+      await expect(page.getByTestId('rate-it-session')).toContainText(next.title);
+      await prompt.getByRole('radio', { name: '3 stars', exact: true }).click();
+      await expect(page.getByTestId('rate-it-session').filter({ hasText: next.title })).toHaveCount(0);
+    }
+    await expect(prompt).toHaveCount(0);
+  });
+});

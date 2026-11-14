@@ -166,10 +166,10 @@ sticky `glass` header, `<main id="main">`, and the footer.
 
 **`HomePage`** (`/`) — one personal card, nothing live. It stacks `HeroBar` (`hero`: name, `conference.dates · city`, a
 `Day n · time` chip from `clock`, and `Browse today` → `/schedule?day=<clock.day>`
-plus `Speakers` buttons) → `UpNextCard` (`up-next`: the attendee's in-progress or next confirmed session from `api.getToday`, with room, venue and `startPhrase`; `up-next-checkin` shown only when the attendance endpoint says `canCheckIn`, then `up-next-checked-in`; `up-next-empty` links to `/schedule?day=<clock.day>`; renders `null` until first response) → `QuickLinks` (`quick-links`, a `nav` of the `LINKS`
-array: Schedule, Speakers, Venues, Food & drink, Expo) → `HappeningNow`
+plus `Speakers` buttons) → `UpNextCard` (`up-next`: the attendee's in-progress or next confirmed session from `api.getToday`, with room, venue and `startPhrase`; `up-next-checkin` shown only when the attendance endpoint says `canCheckIn`, then `up-next-checked-in`; `up-next-empty` links to `/schedule?day=<clock.day>`; renders `null` until first response) → `RateItPrompt` (`rate-it`, owned by the attendance doc; null when nothing to rate) → `HappeningNow`
 (`happening-now`, `src/components/HappeningNow.jsx`: `api.getLive(clock)` sessions as `happening-now-session` rows linking `/sessions/:id` with `LiveBadge`; `happening-now-empty` + schedule link, wording from `dayStartsAt`/`dayEndsAt`/`nextSlot` via `emptyMessage`; holds the announcement, `announcements`: the single newest posted one, pinned first, filtered by
-`postedAt <= clock`, so nothing appears before it was written) →
+`postedAt <= clock`, so nothing appears before it was written) → `QuickLinks` (`quick-links`, a `nav` of the `LINKS`
+array: Schedule, Speakers, Venues, Food & drink, Expo) →
 `SponsorMarquee` (venues doc). Sections that return `null` would leave their
 `<Reveal>` wrapper as a gap, so the container has `[&>:empty]:hidden`.
 `tests/home.spec.js` asserts the five links, the strip, the announcement cut-off, and that
