@@ -266,7 +266,7 @@ test('Recommended for you: the first 3 from /for-you, linked, an invitation when
   // Nothing picked and nothing planned: an invitation to /for-you, no items.
   await page.route('**/recommendations*', (route) => route.fulfill({ json: { items: [], needsInterests: true } }));
   await visit(page, '/', { as: lane.user, at });
-  await expect(page.getByTestId('recs-invite').getByRole('link')).toHaveAttribute('href', '/for-you');
+  await expect(page.getByTestId('recs-invite')).toHaveAttribute('href', '/for-you');
   await expect(page.getByTestId('recs-item')).toHaveCount(0);
   await page.unroute('**/recommendations*');
 

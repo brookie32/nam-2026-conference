@@ -6,6 +6,7 @@ import { SponsorMarquee } from '../components/SponsorMarquee.jsx';
 import { Reveal } from '../components/Reveal.jsx';
 import { UpNextCard } from '../components/UpNextCard.jsx';
 import { RateItPrompt } from '../components/RateItPrompt.jsx';
+import { RecommendedStrip } from '../components/RecommendedStrip.jsx';
 import { HappeningNow } from '../components/HappeningNow.jsx';
 import { HeroMedia } from '../components/HeroMedia.jsx';
 import { Button, Chip } from '../components/ui.jsx';
@@ -99,6 +100,7 @@ export function HomePage() {
       <HeroBar conference={conference} />
       <Reveal><UpNextCard /></Reveal>
       <Reveal><RateItPrompt /></Reveal>
+      <Reveal><RecommendedStrip /></Reveal>
       <Reveal><HappeningNow /></Reveal>
       <QuickLinks />
       <SponsorMarquee />
