@@ -10,13 +10,14 @@ const session = (id, over = {}) => ({
   ...over,
 });
 const agents = { slug: 'agents', name: 'Agents' };
+const cloud = { slug: 'cloud', name: 'Cloud' };
 const topic = (slug, name) => ({ slug, name, kind: 'topic' });
 const NOW = { day: '2026-05-04', time: '09:00' };
 const NONE = { tracks: [], tags: [] };
 
 const rank = (sessions, over = {}) => rankRecommendations({
   sessions, interests: { tracks: ['agents'], tags: [] }, followedSpeakerIds: [],
-  agendaTagSlugs: [], booked: [], now: NOW, ...over,
+  agendaTagSlugs: [], booked: [], rated: [], now: NOW, ...over,
 });
 const ids = (r) => r.items.map((i) => i.session.id);
 
@@ -118,6 +119,62 @@ describe('how matches rank', () => {
     const r = rank([session(5, { track: agents, avgRating: 4.1 }), session(3, { track: agents, avgRating: 4.8 }),
       session(2, { track: agents, avgRating: 4.1 })]);
     assert.deepEqual(ids(r), [3, 2, 5]);
+  });
+});
+
+describe('ratings move recommendations', () => {
+  const rag = topic('rag', 'RAG');
+  const dv = { id: 7, name: 'Delphine Vandenberg' };
+  const rated = (stars, over = {}) => ({ id: 90, title: 'Talk 9', stars, tags: [rag], speakers: [], ...over });
+  // two equal picked-track candidates; the one sharing the topic has the higher id, so only a rating can lead
+  const pair = () => [session(1, { track: agents }), session(2, { track: agents, tags: [rag] })];
+
+  test('a 5 star topic match outranks an otherwise equal candidate, and names the rated session', () => {
+    const r = rank(pair(), { rated: [rated(5)] });
+    assert.deepEqual(ids(r), [2, 1]);
+    assert.deepEqual(r.items[0].reasons, ['Agents track', 'you rated Talk 9 5★']);
+    assert.deepEqual(r.items[1].reasons, ['Agents track']);
+  });
+
+  test('a 1 star topic match ranks it below, and still lists it', () => {
+    const r = rank([session(2, { track: agents, tags: [rag] }), session(1, { track: agents })], { rated: [rated(1)] });
+    assert.deepEqual(ids(r), [1, 2]);
+    assert.deepEqual(r.items[1].reasons, ['Agents track', 'you rated Talk 9 1★']);
+  });
+
+  test('4 and 2 star ratings count the same as 5 and 1; 3 stars changes nothing', () => {
+    assert.deepEqual(ids(rank(pair(), { rated: [rated(4)] })), [2, 1]);
+    assert.deepEqual(ids(rank([pair()[1], pair()[0]], { rated: [rated(2)] })), [1, 2]);
+    const base = rank(pair());
+    assert.deepEqual(rank(pair(), { rated: [rated(3)] }), base);
+    assert.ok(base.items.every((i) => i.reasons.every((x) => !x.startsWith('you rated'))));
+  });
+
+  test('a shared speaker counts, and a rating sharing nothing is ignored', () => {
+    const r = rank([session(1, { track: agents }), session(2, { track: agents, speakers: [dv] })],
+      { rated: [rated(5, { tags: [], speakers: [dv] })] });
+    assert.deepEqual(ids(r), [2, 1]);
+    assert.deepEqual(ids(rank(pair(), { rated: [rated(5, { tags: [topic('evals', 'Evals')] })] })), [1, 2]);
+  });
+
+  test('the boost is clamped, so an explicit pick still outranks it', () => {
+    const picked = session(5, { tags: [topic('evals', 'Evals')] });
+    const boosted = session(1, { tags: [rag], speakers: [dv] }); // matches only through ratings
+    const r = rank([boosted, picked], {
+      interests: { tracks: [], tags: ['evals'] },
+      rated: [rated(5, { speakers: [dv] }), rated(5, { id: 91, title: 'Talk 10' })],
+    });
+    assert.deepEqual(ids(r), [5, 1]);
+  });
+
+  test('a rating alone can list a session, but not unlock an empty state', () => {
+    assert.deepEqual(ids(rank([session(1, { track: cloud, tags: [rag] })], { rated: [rated(5)] })), [1]);
+    const none = rank([session(1, { tags: [rag] })], { interests: NONE, rated: [rated(5)] });
+    assert.deepEqual(none, { items: [], needsInterests: true });
+  });
+
+  test('a net negative adjustment leaves a candidate with no other score out', () => {
+    assert.deepEqual(ids(rank([session(1, { tags: [rag] })], { rated: [rated(1)] })), []);
   });
 });
 
