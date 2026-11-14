@@ -147,6 +147,9 @@ export const LANES = {
   'foryou.seat':      { desktop: { user: marcus, day: 2, slot: '17:15' }, mobile: { user: kenji, day: 2, slot: '17:15' } },
   // Checks in and rates for real on day 0, so it clears its own unrated check-ins; books nothing.
   'home.rate-it':     { desktop: { user: kenji, day: 0, slot: '13:30', agenda: false }, mobile: { user: sofia, day: 0, slot: '13:30', agenda: false } },
+  // Reads recommendations only; interests are set per pane on attendees no other lane gives interests
+  // to (`other` is the second attendee, for the switch). Books nothing.
+  'home.recs':        { desktop: { user: andy, other: sofia, day: 0, readOnly: true }, mobile: { user: jonas, other: abraham, day: 0, readOnly: true } },
   'attendance.rating-toast':  { desktop: { user: marcus, day: 0, slot: '09:00', agenda: false }, mobile: { user: abraham, day: 0, slot: '09:00', agenda: false } },
 };
 
