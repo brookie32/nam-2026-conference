@@ -42,6 +42,7 @@ export const getSponsors = () => api('/sponsors');
 export const getAnnouncements = () => api('/announcements');
 export const getUser = (id) => api(`/users/${id}`);
 export const getSchedule = (userId) => api(`/users/${userId}/schedule`);
+export const getSeatState = (userId, sessionId) => api(`/users/${userId}/reservations/${sessionId}`);
 export const getToday = (userId, { day, time }) => api(`/users/${userId}/today${qs({ day, time })}`);
 
 export const reserveSeat = (userId, sessionId, now) =>

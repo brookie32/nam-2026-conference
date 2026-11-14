@@ -59,9 +59,7 @@ test('your sessions by day, with waitlist, clash, removal, empty state and the f
   // A lane attendee: waitlist a full session, take a confirmed seat in the same slot.
   const lane = await laneFor('agenda.page', testInfo);
   const open = await bookableFor(request, lane.user, lane.day);
-  const all = await (await request.get(`${API}/sessions`)).json();
-  const full = open.find((s) => s.seatsLeft === 0 && all.some((c) => c.id !== s.id && open.some((o) => o.id === c.id)
-    && c.seatsLeft > 3 && c.day === s.day && c.startsAt < s.endsAt && s.startsAt < c.endsAt));
+  const full = open.find((s) => s.seatsLeft === 0 && s.startsAt === lane.slot);
   expect(full, 'a sold-out session with a clashing open one on this lane day').toBeTruthy();
   const clash = open.find((c) => c.id !== full.id && c.seatsLeft > 3 && c.startsAt < full.endsAt && full.startsAt < c.endsAt);
   const put = (id) => request.put(`${API}/users/${lane.user}/reservations/${id}`);
@@ -78,7 +76,7 @@ test('your sessions by day, with waitlist, clash, removal, empty state and the f
     const seatRow = mine.locator(`[data-testid="agenda-row"][data-session-id="${clash.id}"]`);
     await expect(waitRow.getByTestId('agenda-position')).toHaveText(`Position ${seat.waitlistPosition} of ${seat.waitlistCount}`);
     await expect(mine.getByTestId('agenda-day-waitlisted')).toBeVisible();
-    await expect(mine.getByTestId('agenda-day-clashes')).toContainText('1');
+    await expect(mine.getByTestId('agenda-day-clashes')).toContainText('1 clash');
     await expect(waitRow).toHaveAttribute('data-clash', 'true');
     await expect(seatRow).toHaveAttribute('data-clash', 'true');
     if (testInfo.project.name === 'mobile') {
