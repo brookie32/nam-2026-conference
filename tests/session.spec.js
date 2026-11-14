@@ -107,6 +107,31 @@ test.describe('Session detail', () => {
       }
       if (s === manyTags) await shotForPR(page, 'session-page-fits-phone');
     }
+
+    // 320px: the multi-speaker session's speaker cards stay inside the viewport
+    await page.setViewportSize({ width: 320, height: 568 });
+    const counts = await Promise.all(
+      list.map(async (s) => {
+        if (Array.isArray(s.speakers)) return [s, s.speakers.length];
+        const full = await (await request.get(`${API}/sessions/${s.id}`)).json();
+        return [s, full.speakers.length];
+      }),
+    );
+    const [panel, n] = counts.reduce((a, b) => (b[1] > a[1] ? b : a));
+    expect(n, 'no multi-speaker session seeded').toBeGreaterThan(1);
+    await visit(page, `/sessions/${panel.id}`);
+    await expect(page.getByTestId('session-title')).toBeVisible();
+    const overflow320 = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow320, `session ${panel.id} overflows sideways at 320px`).toBeLessThanOrEqual(1);
+    const cards = page.locator('section', { has: page.getByRole('heading', { name: /Speakers?$/ }) }).locator('a[href^="/speakers/"]');
+    expect(await cards.count()).toBe(n);
+    for (let i = 0; i < n; i++) {
+      const box = await cards.nth(i).boundingBox();
+      expect(box.x + box.width, `speaker card ${i} at 320px`).toBeLessThanOrEqual(320);
+    }
+    await shotForPR(page, 'speaker-cards-fit-320');
   });
 
   test('desktop: the aside stays 20rem, beside the main column, with no overflow', async ({ page, request }, testInfo) => {
