@@ -83,6 +83,48 @@ test.describe('Session detail', () => {
     await shotForPR(page, 'ended-session');
   });
 
+  test('phone: the page fits 375px for a keynote, a many-tag talk and a full session', async ({ page, request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile', 'phone layout');
+    await page.setViewportSize({ width: 375, height: 667 });
+    const sessions = await (await request.get(`${API}/sessions`)).json();
+    const list = Array.isArray(sessions) ? sessions : sessions.sessions;
+    const keynote = list.find((s) => s.isKeynote);
+    const manyTags = list.reduce((a, b) => (b.tags.length > a.tags.length ? b : a));
+    const full = list.find((s) => s.isFull);
+    for (const s of [keynote, manyTags, full]) {
+      await visit(page, `/sessions/${s.id}`);
+      await expect(page.getByTestId('session-title')).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      );
+      expect(overflow, `session ${s.id} overflows sideways`).toBeLessThanOrEqual(1);
+      const aside = await page.locator('aside').boundingBox();
+      expect(aside.x + aside.width, `session ${s.id} aside`).toBeLessThanOrEqual(375);
+      const chips = page.locator('aside a[href^="/schedule?tag="]');
+      if (await chips.count()) {
+        const box = await chips.last().boundingBox();
+        expect(box.x + box.width, `session ${s.id} last tag chip`).toBeLessThanOrEqual(375);
+      }
+      if (s === manyTags) await shotForPR(page, 'session-page-fits-phone');
+    }
+  });
+
+  test('desktop: the aside stays 20rem, beside the main column, with no overflow', async ({ page, request }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'desktop layout');
+    const sessions = await (await request.get(`${API}/sessions`)).json();
+    const list = Array.isArray(sessions) ? sessions : sessions.sessions;
+    await visit(page, `/sessions/${list[0].id}`);
+    await expect(page.getByTestId('session-title')).toBeVisible();
+    const aside = await page.locator('aside').boundingBox();
+    const main = await page.locator('[data-testid="session-detail"] > div.grid > div').first().boundingBox();
+    expect(Math.round(aside.width)).toBe(320);
+    expect(aside.x).toBeGreaterThanOrEqual(main.x + main.width);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+
   test('an unknown session id shows a real not-found page, not a retry prompt', async ({ page }) => {
     await visit(page, '/sessions/999999');
     await expect(page.getByRole('heading', { name: 'Session not found' })).toBeVisible();
