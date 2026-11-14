@@ -201,8 +201,6 @@ export function SchedulePage() {
           options={[{ value: ALL, label: 'Any format' }, ...formats.map((f) => ({ value: f.name, label: f.name }))]} />
         <Select label="Topic" value={filters.tag} onChange={(v) => set('tag', v)}
           options={[{ value: ALL, label: 'Any topic' }, ...topicTags.map((t) => ({ value: t.slug, label: t.name }))]} />
-        <Select label="Sort" value={filters.sort} onChange={(v) => set('sort', v)}
-          options={[{ value: ALL, label: 'By time' }, { value: 'rating', label: 'Top rated' }]} />
       </div>
 
       {activeKeys.length > 0 && (
@@ -288,6 +286,8 @@ export function SchedulePage() {
               <span className="text-xs text-muted" data-testid="result-count">
                 {loading ? 'Loading…' : plural(sessions.length, 'session')}
               </span>
+              <Select label="Sort" value={filters.sort} onChange={(v) => set('sort', v)} className="w-28" selectClassName="h-8! pl-2 pr-7 text-xs"
+              options={[{ value: ALL, label: 'By time' }, { value: 'rating', label: 'Top rated' }]} />
             </div>
             {blocker && !loading && (
               <button
