@@ -6,13 +6,14 @@ test.describe('Home is a way in, not a feed', () => {
   test('it links to every main page, and each link lands', async ({ page }) => {
     await visit(page, '/');
     const links = page.getByTestId('quick-links').getByRole('link');
-    await expect(links).toHaveCount(5);
+    await expect(links).toHaveCount(6);
 
-    for (const [name, path] of [['Schedule', '/schedule'], ['Speakers', '/speakers'], ['Venues', '/venues'],
+    for (const [name, path] of [['Schedule', '/schedule'], ['For you', '/for-you'], ['Speakers', '/speakers'], ['Venues', '/venues'],
       ['Food & drink', '/food'], ['Expo', '/expo']]) {
       await expect(page.getByTestId('quick-links').getByRole('link', { name: new RegExp(`^${name}`) }))
         .toHaveAttribute('href', path);
     }
+    await expect(page.getByRole('contentinfo').getByRole('link', { name: 'For you' })).toHaveAttribute('href', '/for-you');
   });
 
   test('nothing live is on it; the one personal card is Up next', async ({ page }) => {

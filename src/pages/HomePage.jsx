@@ -63,6 +63,7 @@ function HeroBar({ conference }) {
 /** The main pages, one tap each — a way in, not a feed. */
 const LINKS = [
   { to: '/schedule', label: 'Schedule', blurb: 'Every session, by day, room and track', icon: 'calendar' },
+  { to: '/for-you', label: 'For you', blurb: 'Talks picked for you', icon: 'sparkle' },
   { to: '/speakers', label: 'Speakers', blurb: 'Who is on stage, A to Z', icon: 'users' },
   { to: '/venues', label: 'Venues', blurb: 'Both sites, their rooms and getting between them', icon: 'building' },
   { to: '/food', label: 'Food & drink', blurb: 'What is open, and where', icon: 'food' },
