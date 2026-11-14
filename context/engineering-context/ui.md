@@ -11,6 +11,10 @@ files:
   - src/lib/useMediaQuery.js
   - src/components/ui.jsx
   - src/components/Layout.jsx
+  - src/components/ReleaseNotesDialog.jsx
+  - src/lib/releaseNotes.js
+  - tests/release-notes.spec.js
+  - tests/unit/release-notes.test.js
   - src/components/Icon.jsx
   - src/components/RecommendedStrip.jsx
   - src/components/WelcomePanel.jsx
@@ -136,7 +140,11 @@ duration })` counts once visible. `HeroMedia` (home hero only) probes
 **`Layout.jsx`** — the route shell (wrapped in `AskProvider`, with the fixed `AskLauncher` and `AskPanel` beside `TabBar`) (`<Route element={<Layout />}>` in
 `App.jsx`). Renders `<RouteChange />`, the global `<ConflictDialog>` (wired to
 `conflict` / `resolveConflict` from the store), a skip link to `#main`, the
-sticky `glass` header, `<main id="main">`, and the footer.
+sticky `glass` header, `<main id="main">`, and the footer. Pressing **9** (not in an
+input/textarea/select/contenteditable, no Ctrl/Cmd/Alt, not a repeat, not over the
+conflict dialog) toggles `<ReleaseNotesDialog>` (`testid release-notes`), which lists
+`RELEASE_NOTES` from `src/lib/releaseNotes.js` with `issueUrl(n)` links; the footer
+bottom row carries the hint. Edit that list to change the notes.
 
 - `NAV` array (`to, label, icon, end`) drives both the desktop nav (`lg+`,
   `aria-label="Main"`) and the mobile menu (`aria-label="Mobile"`, toggled by
