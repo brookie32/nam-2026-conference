@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom';
-import { useConference, useFetch } from '../lib/store.jsx';
+import { useConference } from '../lib/store.jsx';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
-import * as api from '../lib/api.js';
-import { relativeDate, time as fmtTime } from '../lib/format.js';
+import { time as fmtTime } from '../lib/format.js';
 import { SponsorMarquee } from '../components/SponsorMarquee.jsx';
 import { Reveal } from '../components/Reveal.jsx';
 import { UpNextCard } from '../components/UpNextCard.jsx';
+import { HappeningNow } from '../components/HappeningNow.jsx';
 import { HeroMedia } from '../components/HeroMedia.jsx';
-import { Button, Chip, cx } from '../components/ui.jsx';
+import { Button, Chip } from '../components/ui.jsx';
 import { Icon } from '../components/Icon.jsx';
 
 /**
@@ -87,47 +87,6 @@ function QuickLinks() {
   );
 }
 
-/**
- * One announcement, and only one that has actually been posted.
- *
- * This used to render the first two pinned rows regardless of `postedAt`, so a
- * warning about day 3 appeared on day 2 — before it was written.
- */
-function LatestAnnouncement() {
-  const { clock, venueById } = useConference();
-  const { data } = useFetch(api.getAnnouncements, []);
-
-  const nowIso = `${clock.day}T${clock.time}:00Z`;
-  const live = (data ?? [])
-    .filter((a) => a.postedAt <= nowIso)
-    .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.postedAt.localeCompare(a.postedAt));
-
-  const item = live[0];
-  if (!item) return null;
-
-  const tone = {
-    warning: 'border-amber-500/25 bg-amber-500/[0.07] text-amber-200',
-    success: 'border-emerald-500/25 bg-emerald-500/[0.07] text-emerald-200',
-    info: 'border-sky-500/25 bg-sky-500/[0.07] text-sky-200',
-  }[item.kind] ?? 'border-sky-500/25 bg-sky-500/[0.07] text-sky-200';
-
-  return (
-    <section className={cx('flex gap-3 rounded-2xl border p-4', tone)} data-testid="announcements">
-      <Icon name={item.kind === 'warning' ? 'alert' : 'info'} className="mt-0.5 size-4 shrink-0" />
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-baseline gap-2">
-          <h2 className="text-sm font-semibold">{item.title}</h2>
-          <span className="text-[11px] text-faint">
-            {relativeDate(item.postedAt, clock)}
-            {item.venueId && ` · ${venueById[item.venueId]?.shortName}`}
-          </span>
-        </div>
-        <p className="mt-1 text-[13px] leading-relaxed text-muted">{item.body}</p>
-      </div>
-    </section>
-  );
-}
-
 export function HomePage() {
   const { conference } = useConference();
   useDocumentTitle("ORBIT '26");
@@ -138,8 +97,8 @@ export function HomePage() {
     <div className="space-y-8 [&>:empty]:hidden">
       <HeroBar conference={conference} />
       <Reveal><UpNextCard /></Reveal>
+      <Reveal><HappeningNow /></Reveal>
       <QuickLinks />
-      <Reveal><LatestAnnouncement /></Reveal>
       <SponsorMarquee />
     </div>
   );

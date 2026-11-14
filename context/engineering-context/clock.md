@@ -59,8 +59,7 @@ everything starting at `nextSlot`, keynotes then rating first. `dayStartsAt` /
 `dayEndsAt` are the day's `MIN(starts_at)` / `MAX(ends_at)`, `null` for a day
 with no sessions.
 
-Client: `api.getLive({ day, time })` — **no UI calls it yet**; it is there for
-workshop teams to build a "happening now" view on. `tests/live.spec.js` covers
+Client: `api.getLive({ day, time })` — `HappeningNow` on Home calls it (`happening-now`). `tests/live.spec.js` covers
 the endpoint (`the live endpoint lists only what is running`).
 
 **`LiveBadge`** (`src/components/LiveBadge.jsx`, the file's only export) — the

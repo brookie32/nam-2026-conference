@@ -76,9 +76,11 @@ test.describe('Happening now strip', () => {
     await shotForPR(page, 'happening-now-strip');
     if (testInfo.project.name === 'mobile') {
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
-      const box = await strip.boundingBox();
-      expect(box.x).toBeGreaterThanOrEqual(0);
-      expect(box.x + box.width).toBeLessThanOrEqual(375);
+      // Reveal animates in, so poll until it settles.
+      await expect.poll(async () => {
+        const box = await strip.boundingBox();
+        return box.x >= 0 && box.x + box.width <= page.viewportSize().width;
+      }).toBe(true);
     }
 
     // Nothing live: before the first slot, between slots, and after the last.
@@ -99,7 +101,7 @@ test.describe('Happening now strip', () => {
     }
     if (gap) {
       await visit(page, '/', { at: await momentOn(0, gap.time) });
-      await expect(empty).toContainText(`next at ${gap.nextSlot}`);
+      await expect(empty).toContainText(`next starts at ${gap.nextSlot}`);
       await expect(rows).toHaveCount(0);
     }
 
