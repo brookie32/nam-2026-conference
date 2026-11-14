@@ -1,7 +1,7 @@
 import './sandbox-db.js';
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { agendaOn, askSystemPrompt } from '../../server/lib/ask.js';
+import { askSystemPrompt } from '../../server/lib/ask.js';
 
 const agenda = [
   { id: 11, title: 'Agents in anger', startsAt: '13:00', endsAt: '13:45', room: { name: 'Hall B' }, reservation: 'confirmed' },
@@ -9,7 +9,7 @@ const agenda = [
 ];
 
 describe('askSystemPrompt', () => {
-  const prompt = askSystemPrompt({ day: '2026-03-02', time: '14:20', agenda });
+  const prompt = askSystemPrompt({ day: '2026-03-02', time: '14:20', agenda, days: ['2026-03-01', '2026-03-02'] });
 
   test('states the day and the time', () => {
     assert.ok(prompt.includes('2026-03-02'));
@@ -23,7 +23,7 @@ describe('askSystemPrompt', () => {
   });
 
   test('says so when the agenda is empty', () => {
-    assert.match(askSystemPrompt({ day: '2026-03-02', time: '09:00', agenda: [] }), /nothing booked|no sessions/i);
+    assert.match(askSystemPrompt({ day: '2026-03-02', time: '09:00', agenda: [], days: [] }), /nothing booked|no sessions/i);
   });
 
   test('states the formatting rules', () => {
@@ -31,11 +31,5 @@ describe('askSystemPrompt', () => {
     assert.match(prompt, /showTravel/);
     assert.match(prompt, /table/i);
     assert.ok(prompt.includes('/sessions/<id>'));
-  });
-});
-
-describe('agendaOn', () => {
-  test('is the attendee\'s sessions that day, and empty for a day with none', () => {
-    assert.deepEqual(agendaOn(1, '1999-01-01'), []);
   });
 });

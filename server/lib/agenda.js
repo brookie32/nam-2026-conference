@@ -92,6 +92,9 @@ function suggestionsFor(userId, day, slot) {
     .slice(0, SUGGESTION_COUNT);
 }
 
+/** The attendee's confirmed and waitlisted sessions on `day`. */
+export const agendaOn = (userId, day) => scheduleFor(userId).find((d) => d.date === day)?.sessions ?? [];
+
 export function scheduleFor(userId) {
   const status = new Map(myReservations.all(userId).map((r) => [r.session_id, r.status]));
   // Attendance on every day, not just today, so an agenda can ask about a

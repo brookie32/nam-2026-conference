@@ -10,7 +10,7 @@ import { API, ATTENDEES, momentOn, visit, shotForPR } from './helpers.js';
 const sse = (chunks) => [{ type: 'start' }, { type: 'start-step' }, ...chunks, { type: 'finish-step' }, { type: 'finish' }]
   .map((c) => `data: ${JSON.stringify(c)}\n\n`).join('') + 'data: [DONE]\n\n';
 
-const reply = (text) => ({
+const sseReply = (text) => ({
   status: 200,
   contentType: 'text/event-stream',
   headers: { 'x-vercel-ai-ui-message-stream': 'v1' },
@@ -34,7 +34,7 @@ test('Ask ORBIT: an answer links sessions, the missing key is explained, and the
   const gate = new Promise((resolve) => { release = resolve; });
   await page.route('**/api/ask', async (route) => {
     await gate;
-    await route.fulfill(reply('Try [The agent talk](/sessions/7) or [elsewhere](https://example.com/x).'));
+    await route.fulfill(sseReply('Try [The agent talk](/sessions/7) or [elsewhere](https://example.com/x).'));
   });
   await input.fill('agent talks on day 2');
   await send.click();
@@ -61,7 +61,7 @@ test('Ask ORBIT: a Markdown table renders as a table, links in cells work, and a
   await page.setViewportSize({ width: 375, height: 800 });
   await visit(page, '/ask');
   const wide = 'A very long description that keeps this column wider than a phone screen can show';
-  await page.route('**/api/ask', (route) => route.fulfill(reply(`Compare:\n\n| Mode | Talk | Notes |\n| --- | :--: | --- |\n| Walk | [The agent talk](/sessions/7) | ${wide} |\n| Bus | [elsewhere](https://example.com/x) | ${wide} |\n\nPick one.`)));
+  await page.route('**/api/ask', (route) => route.fulfill(sseReply(`Compare:\n\n| Mode | Talk | Notes |\n| --- | :--: | --- |\n| Walk | [The agent talk](/sessions/7) | ${wide} |\n| Bus | [elsewhere](https://example.com/x) | ${wide} |\n\nPick one.`)));
   await page.getByTestId('ask-input').fill('how do I get there');
   await page.getByRole('button', { name: 'Send' }).click();
 

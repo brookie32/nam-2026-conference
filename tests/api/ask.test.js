@@ -66,7 +66,7 @@ function searchingModel(args) {
 }
 
 const userMessage = (text) => ({ id: 'u1', role: 'user', parts: [{ type: 'text', text }] });
-const ask = (question, extra = {}) => api.post('/ask', { messages: [userMessage(question)], ...extra });
+const ask = (question, extra = {}) => api.post('/ask', { messages: [userMessage(question)], day: '2026-01-01', time: '10:00', userId: 1, ...extra });
 
 /** A stub that records the prompt it was called with, then answers in one text part. */
 function recordingModel(seen) {
@@ -165,7 +165,7 @@ describe('Ask ORBIT with a stubbed model', () => {
 
 describe('Ask ORBIT knows today and who is asking', () => {
   test('the system prompt carries the posted day and time and that attendee\'s agenda for the day', async () => {
-    const schedule = await api.json('/users/1/schedule');
+    const { days: schedule } = await api.json('/users/1/schedule');
     const day = schedule.find((d) => d.sessions.length)?.date;
     assert.ok(day, 'Jonas should have a booked day');
     const titles = schedule.find((d) => d.date === day).sessions.map((s) => s.title);

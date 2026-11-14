@@ -10,6 +10,8 @@ files:
   - server/routes/ask.js
   - server/lib/ask.js
   - src/pages/AskPage.jsx
+  - src/components/AskCards.jsx
+  - tests/unit/ask-prompt.test.js
   - src/lib/splitReply.js
   - src/main.jsx
   - src/App.jsx
@@ -103,17 +105,22 @@ the routes. `/opening-presentation`, `/product-presentation` and `/engineering-p
 `/speakers/:id`, `/my-agenda`, `/my-plan` (→ `/my-agenda`), `/venues`, `/food`, `/expo`, `/ask`,
 `/code-of-conduct`, `/accessibility`, `*` NotFound.
 
-**Ask ORBIT** (`/ask`, `AskPage.jsx`). `POST /api/ask { messages: [{ role, content }] }` streams a plain
-text reply (`streamText().pipeTextStreamToResponse`); 503 `{ error: 'Ask ORBIT is not configured' }`
-when `askModel()` is null, 400 on an empty or malformed `messages`. `server/lib/ask.js`: `askModel()`
-is the injected model (`setAskModel`, the test seam), else the AI Gateway model
-(`ASK_ORBIT_MODEL`, default `anthropic/claude-sonnet-5.5`) when `AI_GATEWAY_API_KEY` is set, read per
-request. Locally the key lives in a gitignored `.env` at the repo root, which `server/index.js`
-loads with `process.loadEnvFile` when it exists (CI and a fresh fork have none). Not
-`node --env-file-if-exists`: with `--watch` it stalled the API on CI's Linux runners. `askTools` (`searchSessions`, `findSpeakers`, `venuesAndTravel`) are the model's only data;
-they return session ids so the reply links `[title](/sessions/<id>)`, and the page renders only those
-links (`renderReply`). `splitReply()` (`src/lib/splitReply.js`) splits a reply into text and Markdown-table blocks (a table needs a separator row, so a half-streamed one stays text until it arrives); `ReplyBody` renders tables in an `overflow-x-auto` wrapper so a wide one scrolls inside the bubble. `askOrbit()` in `api.js` returns the body reader; the page learns "not
-configured" from the 503 on send (`ask-not-configured`). Tests stub the model and `/api/ask`.
+**Ask ORBIT** (`/ask`, `AskPage.jsx`, built on `useChat` from `@ai-sdk/react`). `POST /api/ask { messages: UIMessage[], day, time, userId }`
+streams the AI SDK UI message stream (`streamText().pipeUIMessageStreamToResponse`); the page's transport adds `day`, `time`
+(`clock`) and `userId` (`currentUserId`) at send time. 503 `{ error: 'Ask ORBIT is not configured' }` when `askModel()` is null,
+400 on messages without `parts` or a missing `day`/`time`. `server/lib/ask.js`: `askModel()` is the injected model (`setAskModel`,
+the test seam), else the AI Gateway model (`ASK_ORBIT_MODEL`, default `anthropic/claude-sonnet-5.5`) when `AI_GATEWAY_API_KEY` is
+set, read per request. Locally the key lives in a gitignored `.env` at the repo root, which `server/index.js` loads with
+`process.loadEnvFile` when it exists (CI and a fresh fork have none). Not `node --env-file-if-exists`: with `--watch` it stalled
+the API on CI's Linux runners. `askSystemPrompt({ day, time, agenda })` states the clock, the asker's agenda that day
+(`agendaOn(userId, day)` in `agenda.js`) and the formatting rules. `askTools` (`searchSessions`, `findSpeakers`, `venuesAndTravel`) are the
+model's data; they return session ids so the reply links `[title](/sessions/<id>)`, and the page renders only those links
+(`renderReply`). `showSessions({ ids })` and `showTravel({ fromVenueId, toVenueId })` only echo their input: the page renders
+`tool-showSessions` as `SessionResults` (a `SessionCard` per id, fetched live) and `tool-showTravel` as `TravelResults`
+(`ask-travel` rows) from `AskCards.jsx`. `splitReply()` (`src/lib/splitReply.js`) splits text parts into text and Markdown-table
+blocks (a table needs a separator row, so a half-streamed one stays text until it arrives); `ReplyBody` renders tables in an
+`overflow-x-auto` wrapper. The page learns "not configured" from the 503 in `useChat`'s `error` (`ask-not-configured`).
+Tests stub the model and `/api/ask`.
 
 **`useConference()`** (`store.jsx:ConferenceProvider`) spreads the whole bootstrap payload
 (`conference`, `venues`, `travel`, `tracks`, `tags`, `rooms`, `users`, `days`, `formats`,

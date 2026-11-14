@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 import { Link } from 'react-router-dom';
 import { useDocumentTitle } from '../lib/useDocumentTitle.js';
-import { askOrbit } from '../lib/api.js';
+import { useConference } from '../lib/store.jsx';
+import { SessionResults, TravelResults } from '../components/AskCards.jsx';
 import { splitReply } from '../lib/splitReply.js';
 import { Button, SectionHeader, cx } from '../components/ui.jsx';
 import { Icon } from '../components/Icon.jsx';
@@ -49,46 +52,41 @@ const EXAMPLES = [
   'How long does it take to get between the venues?',
 ];
 
+function Part({ part }) {
+  if (part.type === 'text') return part.text.trim() ? <ReplyBody blocks={splitReply(part.text)} /> : null;
+  if (part.type === 'tool-showSessions' && part.input?.ids) return <SessionResults ids={part.input.ids} />;
+  if (part.type === 'tool-showTravel' && part.input?.fromVenueId) return <TravelResults {...part.input} />;
+  return null;
+}
+
+const textOf = (m) => m.parts.filter((p) => p.type === 'text').map((p) => p.text).join('');
+
 export function AskPage() {
   useDocumentTitle('Ask ORBIT');
-  const [messages, setMessages] = useState([]);
+  const { clock, currentUserId } = useConference();
+  // The transport reads the latest clock and attendee at send time, so a pinned ?at= is honoured.
+  const live = useRef({});
+  live.current = { clock, currentUserId };
+  const transport = useMemo(() => new DefaultChatTransport({
+    api: '/api/ask',
+    prepareSendMessagesRequest: ({ messages }) => ({
+      body: { messages, day: live.current.clock?.day ?? '', time: live.current.clock?.time ?? '', userId: live.current.currentUserId },
+    }),
+  }), []);
+  const { messages, sendMessage, status, error } = useChat({ transport });
   const [draft, setDraft] = useState('');
-  const [pending, setPending] = useState(false);
-  const [notConfigured, setNotConfigured] = useState(false);
-  const [failed, setFailed] = useState(false);
-  const abort = useRef(null);
+  const pending = status === 'submitted' || status === 'streaming';
+  const notConfigured = /not configured/i.test(error?.message ?? '');
+  const failed = Boolean(error) && !notConfigured;
   const end = useRef(null);
 
-  useEffect(() => () => abort.current?.abort(), []);
   useEffect(() => { end.current?.scrollIntoView?.({ block: 'nearest' }); }, [messages]);
 
-  const send = async (text) => {
+  const send = (text) => {
     const question = text.trim();
     if (!question || pending) return;
-    const history = [...messages, { role: 'user', content: question }];
-    setMessages([...history, { role: 'assistant', content: '' }]);
+    sendMessage({ text: question });
     setDraft('');
-    setPending(true);
-    setFailed(false);
-    abort.current = new AbortController();
-    try {
-      const reader = await askOrbit(history, { signal: abort.current.signal });
-      const decoder = new TextDecoder();
-      let reply = '';
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        reply += decoder.decode(value, { stream: true });
-        setMessages([...history, { role: 'assistant', content: reply }]);
-      }
-    } catch (err) {
-      if (err.name === 'AbortError') return;
-      setMessages(history);
-      if (err.status === 503) setNotConfigured(true);
-      else setFailed(true);
-    } finally {
-      setPending(false);
-    }
   };
 
   const submit = (e) => { e.preventDefault(); send(draft); };
@@ -121,13 +119,18 @@ export function AskPage() {
           </ul>
         )}
         {messages.map((m, i) => (
-          <div key={i} data-role={m.role} className={cx(
+          <div key={m.id} data-role={m.role} className={cx(
             'max-w-[90%] min-w-0 rounded-2xl px-4 py-2.5 text-sm',
             m.role === 'user' ? 'ml-auto whitespace-pre-wrap bg-violet-500/15 text-ink' : 'border border-hairline bg-surface text-ink',
           )}>
-            {m.role === 'assistant' ? (m.content.trim() ? <ReplyBody blocks={splitReply(m.content)} /> : <span className="text-muted">Thinking…</span>) : m.content}
+            {m.role === 'assistant'
+              ? (m.parts.some((p) => (p.type === 'text' && p.text.trim()) || p.type.startsWith('tool-'))
+                ? m.parts.map((p, j) => <Part key={j} part={p} />)
+                : <span className="text-muted">Thinking…</span>)
+              : textOf(m)}
           </div>
         ))}
+        {status === 'submitted' && <p className="text-sm text-muted">Thinking…</p>}
         {failed && <p role="alert" className="text-sm text-rose-300">That did not work. Try again.</p>}
         <div ref={end} />
       </div>
