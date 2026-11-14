@@ -1,0 +1,37 @@
+# Ask ORBIT: knows today and who's asking, with AI SDK generative UI cards
+
+## What this changes
+Ask ORBIT now knows which day and time it is on the conference clock and who is asking, and the model can answer with the app's own components instead of only text. Asking "what's on this afternoon?" is answered for the attendee's own agenda that day. When the model calls `showSessions`, the reply shows one session card per id (time, room, seats left); `showTravel` shows the travel options between two venues. Text around the cards still renders Markdown, tables included. The page is built on `useChat` from `@ai-sdk/react`.
+
+## Where
+- `package.json` / lockfile — add `@ai-sdk/react` (^2, the line that pairs with the installed `ai` ^5) to `dependencies`, on purpose.
+- `server/lib/ask.js` — `askSystemPrompt()` becomes `askSystemPrompt({ day, time, agenda })`. It adds: the current day and time; the attendee's confirmed and waitlisted sessions that day (id, title, start-end, room); and the formatting rules: show sessions with `showSessions`, travel with `showTravel`, Markdown for prose and tables for comparisons, link a session only as `[title](/sessions/<id>)`. New `agendaOn(userId, day)` returns `scheduleFor(userId).find(d => d.date === day)?.sessions ?? []` (from `server/lib/agenda.js`). Two new tools beside `askTools`: `showSessions({ ids: number[] })` and `showTravel({ fromVenueId, toVenueId })`. Each has an `execute` that only echoes its validated input, so the model gets a result and can finish its turn. The component does the lookup, not the tool.
+- `server/routes/ask.js` — the body becomes `{ messages: UIMessage[], day, time, userId }`. `valid()` checks UI messages (`parts` array, non-empty, a user or assistant role) and that `day` and `time` are strings. The handler calls `convertToModelMessages(messages)`, builds the prompt from `day`, `time` and `agendaOn(userId, day)`, and replies with `result.pipeUIMessageStreamResponse(res)` (`toUIMessageStreamResponse` if the installed `ai` has no Node-response variant). 503 and 400 stay.
+- `src/lib/api.js` — delete `askOrbit` (a transport replaces it).
+- `src/pages/AskPage.jsx` — `useChat({ transport: new DefaultChatTransport({ api: '/api/ask', prepareSendMessagesRequest }) })`. `prepareSendMessagesRequest` reads `clock.day`, `clock.time` and `currentUserId` from `useConference()` at send time, so a pinned `?at=` is honoured. Each message is rendered part by part: `text` through the existing `splitReply` and `ReplyBody` (unchanged), `tool-showSessions` through new `SessionResults`, `tool-showTravel` through new `TravelResults`. The 503 is read from `error` (the message carries the JSON body). Send is disabled while `status` is `submitted` or `streaming`. The `data-testid`s stay.
+- `src/components/AskCards.jsx` (new) — `SessionResults({ ids })` fetches each with `api.getSession(id, currentUserId)` and renders `SessionCard variant="row"` (there is no "list" variant; the row card shows time and room but no seats-left count, so a `data-testid="ask-seats"` line under each card gives it, `data-testid="session-card"`), wrapped `min-w-0`. `TravelResults({ fromVenueId, toVenueId })` reads `travel` and `venues` from `useConference()` and lists `routesBetween` (from `src/lib/travel.js`) as `data-testid="ask-travel"` rows (mode, minutes, cost).
+- Tests, none reaching a provider:
+  - `tests/api/ask.test.js` — `startApi()` and `setAskModel` with `MockLanguageModelV2`, as the file already does. Update the existing posts to the UI-message body, and add a stub that records the `prompt` it was called with. Assert the system message contains the posted `day`, `time` and the titles from `/api/users/:id/schedule` for that day. A second stub calls `showSessions` and the response stream contains a `tool-input-available` chunk for it.
+  - `tests/unit/ask-prompt.test.js` (new, `import './sandbox-db.js'` first, as `tests/unit/query.test.js` does) — `askSystemPrompt({ day, time, agenda })` contains the day, the time, the agenda titles, and each formatting rule.
+  - `tests/ask.spec.js` — `visit(page, '/ask', { as, at: await momentOn(1, '14:00') })` from `tests/helpers.js`; read-only, no data lane. `page.route('**/api/ask')` fulfils a UI-message SSE body (`text/event-stream`, header `x-vercel-ai-ui-message-stream: v1`) with `tool-input-available` parts. `page.setViewportSize({ width: 375, height: 812 })` for the overflow check.
+
+## How it will be proved
+| Done when | Check | Layer |
+| --- | --- | --- |
+| The request body carries `day`, `time` and the attendee id | the browser test captures `route.request().postDataJSON()` after a pinned `?at=` and `as: ATTENDEES.andy`; asserts `day`, `time === '14:00'`, `userId === 2`. False on main: the body is `{ messages }` only | Browser (`tests/ask.spec.js`) |
+| The system prompt includes them and the attendee's agenda that day | stub records its `prompt`; post `{ day, time, userId }` for an attendee with a booking that day; assert the system text has the day, the time and that session's title (title read from `/users/:id/schedule`). False on main: the prompt has no per-request data | API (`tests/api/ask.test.js`) |
+| `showSessions` renders one card per id with the right time, room and seats | stream a `showSessions` call with two ids; per id read `/api/sessions/:id`; assert two `session-card`s whose text has `startsAt`, the room name and the seats-left count. False on main: no tool parts are rendered | Browser |
+| `showTravel` renders the travel options | stream `showTravel` between the two venues; assert an `ask-travel` row per mode from `/api/meta/venues` travel data. False on main | Browser |
+| Text parts still render Markdown, tables included | stream a `text` part holding a table and a session link; assert the `<table>`, its `columnheader`s and the link `href`. The assertion is true on main for a plain-text body, so the proof is that it holds through `useChat`; on main the SSE body renders as raw text, so it fails there | Browser |
+| The prompt states the formatting rules | `askSystemPrompt(...)` matches `showSessions`, `showTravel`, `table` and `/sessions/<id>` | Unit (`tests/unit/ask-prompt.test.js`) |
+| 375px, no horizontal overflow, no real provider | at 375px with the cards on screen, `documentElement.scrollWidth <= innerWidth`; every case fulfils `/api/ask`, and the API file runs with `AI_GATEWAY_API_KEY` deleted | Browser + API |
+
+## Decisions
+- Two Done-when rows hold on main in part: text parts rendering Markdown including tables (the plain-text renderer from #43) and "no real provider" (both ask specs already stub). Is the right reading that this build keeps them true through `useChat`, proved against a UI-message stream that fails on main?
+- Is it right that the wire format changes from a plain text stream with `{ role, content }` to the AI SDK UI message stream with `parts`, so the old body is rejected with 400 (the API tests move with it)?
+- Should `showSessions` and `showTravel` carry only ids, with the cards reading live seats from the API, rather than having the tool return full session objects?
+- Should `day`, `time` and the attendee id come from the client's conference clock and switcher in the request body, with the server trusting them as the ticket describes?
+- Should `@ai-sdk/react` be added as a new dependency?
+
+## Out of scope
+Booking seats from a card, remembering conversations, and changing the existing tool set (`searchSessions`, `findSpeakers`, `venuesAndTravel`).
