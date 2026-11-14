@@ -255,3 +255,53 @@ test.describe('Rate it prompt', () => {
     await expect(prompt).toHaveCount(0);
   });
 });
+
+test('Recommended for you: the first 3 from /for-you, linked, an invitation when empty, follows the attendee', async ({ page, request }, testInfo) => {
+  const lane = await laneFor('home.recs', testInfo);
+  const at = await momentOn(0, '09:00');
+  const tracks = (await (await request.get(`${API}/bootstrap`)).json()).tracks;
+  await request.put(`${API}/users/${lane.user}/interests`, { data: { tracks: [tracks[0].slug], tags: [] } });
+  await request.put(`${API}/users/${lane.other}/interests`, { data: { tracks: [tracks[tracks.length - 1].slug], tags: [] } });
+
+  // Nothing picked and nothing planned: an invitation to /for-you, no items.
+  await page.route('**/recommendations*', (route) => route.fulfill({ json: { items: [], needsInterests: true } }));
+  await visit(page, '/', { as: lane.user, at });
+  await expect(page.getByTestId('recs-invite')).toHaveAttribute('href', '/for-you');
+  await expect(page.getByTestId('recs-item')).toHaveCount(0);
+  await page.unroute('**/recommendations*');
+
+  // What /for-you shows for this attendee, first 3.
+  const strip = async (as) => {
+    await visit(page, '/', { as, at });
+    await expect(page.getByTestId('recs-item').first()).toBeVisible();
+    return page.getByTestId('recs-item').evaluateAll((els) => els.map((e) => ({
+      id: e.getAttribute('data-session-id'),
+      reason: e.querySelector('[data-testid="recs-reason"]').textContent.trim(),
+      href: e.querySelector('a').getAttribute('href'),
+    })));
+  };
+  await visit(page, '/for-you', { as: lane.user, at });
+  await expect(page.getByTestId('foryou-item').first()).toBeVisible();
+  const forYou = (await page.getByTestId('foryou-item').evaluateAll((els) => els.map((e) => ({
+    id: e.getAttribute('data-session-id'),
+    reason: e.querySelector('[data-testid="foryou-reason"]').textContent.trim(),
+  })))).slice(0, 3);
+  expect(forYou.length).toBeGreaterThan(0);
+
+  const mine = await strip(lane.user);
+  expect(mine.map(({ id, reason }) => ({ id, reason }))).toEqual(forYou);
+  for (const m of mine) expect(m.href).toBe(`/sessions/${m.id}`);
+  await expect(page.getByTestId('recs-see-all')).toHaveAttribute('href', '/for-you');
+  await expect(page.getByTestId('recs-invite')).toHaveCount(0);
+  // Each item shows a real start time, e.g. "2:45 PM", never "12:undefined AM".
+  for (const text of await page.getByTestId('recs-item').allTextContents()) {
+    expect(text).not.toContain('undefined');
+    expect(text).toMatch(/\d{1,2}:\d{2}\s?[AP]M/);
+  }
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+  await shotForPR(page, 'Home with the Recommended for you strip');
+
+  // Another attendee, other interests: another strip.
+  const theirs = await strip(lane.other);
+  expect(theirs.map((m) => m.id)).not.toEqual(mine.map((m) => m.id));
+});
