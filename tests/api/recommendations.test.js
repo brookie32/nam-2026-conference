@@ -1,6 +1,6 @@
 import { after, before, describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { startApi, clearAgenda, overlaps } from './harness.js';
+import { startApi, clearAgenda, overlaps, attendedSession } from './harness.js';
 
 let api;
 let close;
@@ -28,17 +28,17 @@ describe('interests', () => {
   test('saved per attendee, replaced as a set, returned as slugs', async () => {
     const [t1, t2] = trackSlugs();
     const [g1, g2] = topicSlugs();
-    assert.deepEqual(await api.json('/users/1/interests'), { tracks: [], tags: [] });
+    assert.deepEqual(await api.json('/users/1/interests'), { tracks: [], tags: [], role: null });
 
     const put = await pick(1, { tracks: [t1, t2], tags: [g1] });
     assert.equal(put.status, 200);
-    assert.deepEqual(put.body, { tracks: [t1, t2].sort(), tags: [g1] });
+    assert.deepEqual(put.body, { tracks: [t1, t2].sort(), tags: [g1], role: null });
     assert.deepEqual(await api.json('/users/1/interests'), put.body);
-    assert.deepEqual(await api.json('/users/2/interests'), { tracks: [], tags: [] }, 'another attendee is unaffected');
+    assert.deepEqual(await api.json('/users/2/interests'), { tracks: [], tags: [], role: null }, 'another attendee is unaffected');
 
-    const replaced = await pick(1, { tracks: [t2], tags: [g2] });
-    assert.deepEqual(replaced.body, { tracks: [t2], tags: [g2] });
-    assert.deepEqual((await pick(1, { tracks: [], tags: [] })).body, { tracks: [], tags: [] });
+    const replaced = await pick(1, { tracks: [t2], tags: [g2], role: null });
+    assert.deepEqual(replaced.body, { tracks: [t2], tags: [g2], role: null });
+    assert.deepEqual((await pick(1, { tracks: [], tags: [], role: null })).body, { tracks: [], tags: [], role: null });
   });
 
   test('an unknown slug is a 400 and changes nothing', async () => {
@@ -49,12 +49,40 @@ describe('interests', () => {
       assert.equal(res.status, 400, JSON.stringify(body));
       assert.ok(res.body.error);
     }
-    assert.deepEqual(await api.json('/users/3/interests'), { tracks: [t1], tags: [] });
+    assert.deepEqual(await api.json('/users/3/interests'), { tracks: [t1], tags: [], role: null });
+  });
+
+  test('a role is stored as its own kind, never counts as a pick, and an unknown one is a 400', async () => {
+    const [t1] = trackSlugs();
+    const [g1, g2] = topicSlugs();
+    const put = await pick(2, { tracks: [t1], tags: [g1, g2], role: 'short-stay' });
+    assert.equal(put.status, 200);
+    assert.deepEqual(put.body, { tracks: [t1], tags: [g1, g2].sort(), role: 'short-stay' });
+    assert.deepEqual(await api.json('/users/2/interests'), put.body);
+
+    // A role alone is not a pick: it changes nothing about what is recommended.
+    const before = await recs(4, days[0], '08:00');
+    await pick(4, { tracks: [], tags: [], role: 'vip' });
+    assert.deepEqual(await api.json('/users/4/interests'), { tracks: [], tags: [], role: 'vip' });
+    assert.deepEqual(await recs(4, days[0], '08:00'), before);
+
+    for (const role of ['nope', 7, '']) {
+      const res = await pick(2, { tracks: [], tags: [], role });
+      assert.equal(res.status, 400, JSON.stringify(role));
+    }
+    assert.equal((await api.json('/users/2/interests')).role, 'short-stay', 'a rejected PUT changes nothing');
+    const cleared = await pick(2, { tracks: [t1], tags: [] });
+    assert.equal(cleared.body.role, null, 'omitting the role clears it');
+    for (const role of ['vip', 'short-stay', 'speaking']) {
+      assert.equal((await pick(2, { tracks: [], tags: [], role })).status, 200, role);
+    }
+    await pick(2, { tracks: [], tags: [] });
+    await pick(4, { tracks: [], tags: [] });
   });
 
   test('an unknown attendee is a 404', async () => {
     assert.equal((await api.get('/users/999999/interests')).status, 404);
-    assert.equal((await pick(999999, { tracks: [], tags: [] })).status, 404);
+    assert.equal((await pick(999999, { tracks: [], tags: [], role: null })).status, 404);
     assert.equal((await api.get(`/users/999999/recommendations?day=${days[0]}&time=09:00`)).status, 404);
   });
 });
@@ -66,7 +94,7 @@ describe('recommendations', () => {
 
   test('with no interests and no agenda, the page is asked to collect interests', async () => {
     await clearAgenda(api, 4);
-    await pick(4, { tracks: [], tags: [] });
+    await pick(4, { tracks: [], tags: [], role: null });
     assert.deepEqual(await recs(4, days[0], '08:00'), { items: [], needsInterests: true });
   });
 
@@ -144,5 +172,39 @@ describe('recommendations', () => {
     assert.ok(r.items.every((i) => i.reasons.length > 0));
     const firstTrackOnly = r.items.findIndex((i) => !i.reasons.includes(reason));
     assert.ok(r.items.slice(0, firstTrackOnly < 0 ? undefined : firstTrackOnly).every((i) => i.reasons.includes(reason)));
+  });
+});
+
+describe('ratings', () => {
+  test('a 5 star rating lifts a session sharing its topic, with the reason, at a pinned clock', async () => {
+    const { userId: id, session: seen } = await attendedSession(api);
+    await clearAgenda(api, id);
+    const now = { day: days[1], time: '08:00' };
+    const rate = (stars) => api.put(`/users/${id}/ratings/${seen.id}`, { stars, day: now.day, time: now.time });
+    const topics = (s) => s.tags.filter((t) => t.kind === 'topic').map((t) => t.slug);
+    const shares = (s) => topics(s).some((t) => topics(seen).includes(t)) || s.speakers.some((sp) => seen.speakers.some((x) => x.id === sp.id));
+
+    assert.equal((await rate(3)).status, 200);
+    let found;
+    for (const track of trackSlugs()) {
+      await pick(id, { tracks: [track], tags: [] });
+      const items = (await recs(id, now.day, now.time)).items.filter((i) => i.session.id !== seen.id);
+      const at = items.findIndex((i) => shares(i.session));
+      const control = items.slice(0, Math.max(at, 0)).find((i) => !shares(i.session));
+      if (at > 0 && control) { found = { track, target: items[at].session, control: control.session }; break; }
+    }
+    assert.ok(found, 'the seed has a track with a control ahead of a session sharing the rated topic or speaker');
+    assert.ok((await recs(id, now.day, now.time)).items.every((i) => !i.reasons.some((r) => r.startsWith(`you rated ${seen.title} `))), '3 stars adds no reason');
+
+    assert.equal((await rate(5)).status, 200);
+    const after = (await recs(id, now.day, now.time)).items;
+    const order = after.map((i) => i.session.id);
+    const hit = after.find((i) => i.session.id === found.target.id);
+    assert.ok(hit.reasons.includes(`you rated ${seen.title} 5★`), hit.reasons.join(' | '));
+    assert.ok(order.indexOf(found.target.id) < order.indexOf(found.control.id), 'the shared session now leads its tied control');
+
+    assert.equal((await rate(1)).status, 200);
+    const low = (await recs(id, now.day, now.time)).items.map((i) => i.session.id);
+    assert.ok(!low.includes(found.target.id) || low.indexOf(found.target.id) > low.indexOf(found.control.id), '1 star ranks it below');
   });
 });

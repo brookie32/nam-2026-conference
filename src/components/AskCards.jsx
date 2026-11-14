@@ -17,7 +17,14 @@ export function SessionResults({ ids }) {
   }, [key, currentUserId]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="my-2 min-w-0 space-y-2">
-      {sessions.map((s) => <div key={s.id} className="min-w-0"><SessionCard session={s} variant="row" /></div>)}
+      {sessions.map((s) => <div key={s.id} className="min-w-0">
+          <SessionCard session={s} variant="row" />
+          {s.capacity > 0 && (
+            <p data-testid="ask-seats" className="mt-1 px-1 text-[11px] text-muted">
+              {s.seatsLeft === 0 ? 'Full' : `${s.seatsLeft} ${s.seatsLeft === 1 ? 'seat' : 'seats'} left`}
+            </p>
+          )}
+        </div>)}
     </div>
   );
 }

@@ -133,6 +133,9 @@ test('Ask ORBIT: the request knows today and who is asking, and the model can an
   for (const [i, s] of sessions.entries()) {
     await expect(cards.nth(i)).toContainText(s.startsAt);
     await expect(cards.nth(i)).toContainText(s.room.name);
+    if (s.capacity > 0) {
+      await expect(reply.getByTestId('ask-seats').nth(i)).toHaveText(s.seatsLeft === 0 ? /^Full/ : new RegExp(`^${s.seatsLeft} seats? left$`));
+    }
   }
 
   // showTravel: a row per mode.

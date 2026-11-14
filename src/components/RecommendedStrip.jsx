@@ -7,12 +7,13 @@ import { time as fmtTime } from '../lib/format.js';
  * Home's "Recommended for you": the first 3 of what /for-you lists, same call
  * and deps as ForYouPage so the two agree. Nothing while loading, on error or
  * with nothing to recommend; an invitation when the endpoint says needsInterests.
+ * `picksVersion` bumps when Home's welcome saves picks, so the strip refetches.
  */
-export function RecommendedStrip() {
+export function RecommendedStrip({ picksVersion = 0 }) {
   const { currentUserId, clock, reservations } = useConference();
   const { data } = useFetch(
     () => api.getRecommendations(currentUserId, { day: clock.day, time: clock.time }),
-    [currentUserId, clock.day, clock.time, reservations],
+    [currentUserId, clock.day, clock.time, reservations, picksVersion],
   );
   if (!data) return null;
 
